@@ -4,7 +4,7 @@
 0. The project provides the ability to develop console applications based on payloads.
 
 
-# Diles
+# Files
 
 1. The project contains the following files:
     1. README.md – description
