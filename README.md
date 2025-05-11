@@ -4,6 +4,16 @@
 0. The project provides the ability to develop console applications based on payloads.
 
 
+# Diles
+
+1. The project contains the following files:
+    1. README.md – description
+    0. app.php – base application class, implements monitoring, logging, and configuration
+    0. engine.php – extends app with payload handling
+    0. payload.php – base class for payloads
+    0. pull.sh – pulls the project from git
+    0. push.sh – pushes the current branch to git
+
 
 ## Dependenсes
 
