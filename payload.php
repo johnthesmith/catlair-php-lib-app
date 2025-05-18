@@ -120,7 +120,7 @@ class Payload extends Params
             - snake_case
         */
         string $aPayloadName    = null,
-        Paylaod $aParent        = null
+        Payload $aParent        = null
     )
     {
         /* Define payload object */
@@ -146,6 +146,8 @@ class Payload extends Params
                     'current-path'  => getcwd()
                 ]
             );
+            /* Dump result in to log */
+            $aApp -> resultWarning( $result );
         }
         else
         {
@@ -493,7 +495,7 @@ class Payload extends Params
     */
     public function getParent()
     {
-        return $this -> Parent;
+        return $this -> parent;
     }
 
 

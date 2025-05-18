@@ -1,7 +1,11 @@
 # app
 
 1. This repository contains application php code for Catlair.
-0. The project provides the ability to develop console applications based on payloads.
+0. The project provides the ability to develop console applications.
+0. The project implements a separation of system functionality and application-specific functionality.
+    1. System functionality (application management, configuration, monitoring, logging) is implemented in the app module and its descendants.
+    0. Application-specific business logic is implemented in payload modules.
+
 
 
 # Files
@@ -125,3 +129,8 @@ daemon --> engine
 hub --> store_utils
 ```
 
+
+
+# Links
+
+1. https://github.com/johnthesmith/scraps/blob/main/ru/siama.md

@@ -510,6 +510,13 @@ class App extends Params
             );
         }
 
+        /* Set deathhand for application */
+        if( !$this -> isOk() )
+        {
+            register_shutdown_function( fn() => exit( 1 ));
+        }
+
+
         return $this;
     }
 
@@ -667,11 +674,10 @@ class App extends Params
             $this -> getLog()
             -> tracePush()
             -> setTrace( true )
-            -> Error( $aResult -> getCode())
+            -> error( $aResult -> getCode())
             -> begin( 'Error information' )
             -> trace()
-            -> param( 'Message', $aResult -> getMessage())
-            -> dump( $aResult -> getDetailes(), 'Details', null, '' )
+            -> dump( $aResult -> getDetails(), 'Details', null, '' )
             -> traceDump()
             -> tracePop()
             -> end();
