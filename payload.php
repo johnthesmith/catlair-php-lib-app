@@ -142,8 +142,7 @@ class Payload extends Params
                 'payload-library-not-found',
                 [
                     'file'          => $library,
-                    'payload'       => $aPayloadName,
-                    'current-path'  => getcwd()
+                    'payload'       => $aPayloadName
                 ]
             );
             /* Dump result in to log */
@@ -277,27 +276,30 @@ class Payload extends Params
         bool    $aSilent = false
     )
     {
-        if( method_exists( $this, $aMethod ))
+        if( $this -> isOk() )
         {
-            call_user_func_array
-            (
-                [ $this, $aMethod ],
-                $this -> getMethodParameters( $aMethod, $aArguments )
-            );
-        }
-        else
-        {
-            if( !$aSilent )
+            if( method_exists( $this, $aMethod ))
             {
-                $this -> setResult
+                call_user_func_array
                 (
-                    'payload-method-does-not-exists',
-                    [
-                        'class' => get_class( $this ),
-                        'method' => $aMethod
-                    ],
-                )
-                -> resultWarning();
+                    [ $this, $aMethod ],
+                    $this -> getMethodParameters( $aMethod, $aArguments )
+                );
+            }
+            else
+            {
+                if( !$aSilent )
+                {
+                    $this -> setResult
+                    (
+                        'payload-method-does-not-exists',
+                        [
+                            'class' => get_class( $this ),
+                            'method' => $aMethod
+                        ],
+                    )
+                    -> resultWarning();
+                }
             }
         }
         return $this;
