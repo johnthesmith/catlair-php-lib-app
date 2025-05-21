@@ -322,9 +322,13 @@ class App extends Params
         -> lineEnd();
 
         /* Check for the presence of the default file */
-        if( empty( $configFile ) && file_exists( 'config.json' ) )
+        if( empty( $configFile ) && file_exists( 'config.yaml' ) )
         {
-            $configFile = 'config.json';
+            $configFile = 'config.yaml';
+            if( empty( $configFile ) && file_exists( 'config.json' ))
+            {
+                $configFile = 'config.json';
+            }
         }
 
         if( !empty( $configFile ))
@@ -798,31 +802,8 @@ class App extends Params
     public function getConfigFileName()
     :string
     {
-        return $file = $this -> getParamMul
-        (
-            [
-                [ 'app', 'config' ],
-                'config'
-            ],
-            ''
-        );
+        return $file = $this -> getParam([ 'app', 'config' ], '' );
     }
-
-
-
-    /*
-        Returns the local path if available, or an empty value otherwise.
-    */
-    public function getLocalPath
-    (
-        /* Local path */
-        string $aLocal = null
-    )
-    :string
-    {
-        return  empty( $aLocal ) ? '' : ( '/' . $aLocal );
-    }
-
 
 
 
@@ -845,7 +826,7 @@ class App extends Params
             ? $this -> getParamMul([[ 'project', 'path' ], 'app-path' ], ROOT )
             : $aProjectPath
         ) .
-        $this -> getLocalPath( $aLocal );
+        clLocalPath( $aLocal );
     }
 
 

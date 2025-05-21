@@ -571,8 +571,8 @@ class Payload extends Params
         (
             'payload',
             empty( $aProject ) ? null : $aProject
-        )
-        . $aApp -> getLocalPath( $aLocal );
+        ) .
+        clLocalPath( $aLocal );
     }
 
 
@@ -735,5 +735,21 @@ class Payload extends Params
     {
         $this -> getApp() -> resultError( $this );
         return $this;
+    }
+
+
+
+    /*
+        Return project path from app
+    */
+    public function getProjectPath
+    (
+        /* Local path relative to the project */
+        string $aLocal = null,
+        /* Oribinal product path */
+        string $aProjectPath = null
+    )
+    {
+        return $this -> getApp() -> getProjectPath( $aLocal, $aProjectPath );
     }
 }

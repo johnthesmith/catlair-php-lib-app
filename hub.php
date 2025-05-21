@@ -73,7 +73,7 @@ class Hub extends Payload
     public function getRwPath
     (
         /* Additional path inside the 'rw' directory */
-        string $aLocalPath = '',
+        string $aLocal = '',
         /* Project root directory */
         string $aProjectPath = null
     )
@@ -82,10 +82,10 @@ class Hub extends Payload
         return
         $this -> getProjectPath
         (
-            'rw', empty( $aProjectPath ) ? null : $aProjectPath
-        )
-        .
-        $this -> getLocalPath( $aLocalPath );
+            'rw',
+            empty( $aProjectPath ) ? null : $aProjectPath
+        ) .
+        clLocalPath( $aLocal );
     }
 
 
@@ -116,8 +116,8 @@ class Hub extends Payload
         $this -> getProjectPath
         (
             'ro', empty( $aProjectPath ) ? null : $aProjectPath
-        )
-        . $this -> getLocalPath( $aLocalPath );
+        ) .
+        clLocalPath( $aLocalPath );
     }
 
 

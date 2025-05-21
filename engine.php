@@ -170,7 +170,7 @@ class Engine extends App
             'payload',
             empty( $aProject ) ? null : $aProject
         )
-        . $this -> getLocalPath( $aLocal );
+        . clLocalPath( $aLocal );
     }
 
 
@@ -289,7 +289,6 @@ class Engine extends App
             /* Uses default value */
             default: $result = self::PROJECTS; break;
         }
-
         return $result;
     }
 
