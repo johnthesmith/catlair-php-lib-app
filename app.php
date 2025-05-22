@@ -93,6 +93,7 @@ class App extends Params
 {
     const ID = 'app';
 
+
     /*
         Application objects
     */
@@ -137,6 +138,9 @@ class App extends Params
 
         /* Calling configuration procedures in child classes to implement client */
         -> onConfig()
+
+        /* Log and monitoring events */
+        -> onLogSetting()
 
         /* Retrieving parameters from the CLI */
         -> addParams( self::getCLI() )
@@ -236,6 +240,8 @@ class App extends Params
         return $this;
     }
 
+
+
     /*
         Post-run event — runs after main logic
     */
@@ -245,6 +251,81 @@ class App extends Params
         return $this;
     }
 
+
+
+    public function onLogSetting()
+    :self
+    {
+        /* Устанавливаем режим вывода журнала */
+        $logFile = $this -> getParamMul([[ 'app', 'log', 'file' ],'log' ]);
+
+        if( empty( $logFile ))
+        {
+            /* Switch log to console */
+            $this
+            -> getLog()
+            -> setDestination( Log::CONSOLE );
+        }
+        else
+        {
+            /* Switch log to file */
+            $this
+            -> getLog()
+            -> setDestination( Log::FILE )
+            -> setLogPath( dirname( $logFile ))
+            -> setLogFile( basename( $logFile ));
+        }
+
+        if( $this -> isOk() )
+        {
+            $this
+            -> getLog()
+            -> trace( 'Config file' )
+            -> param( 'file', $this -> getConfigFile() );
+        }
+
+        /* Устанавливаем режим вывода журнала */
+        $this -> getLog()
+        -> setEnabled(      $this -> getParam([ 'app', 'log', 'enabled' ], true ))
+        -> setTrapEnabled(  $this -> getParam([ 'app', 'log', 'trap' ], false ))
+        -> setDebug(        $this -> getParam([ 'app', 'log', 'debug' ], true ))
+        -> setTrace(        $this -> getParam([ 'app', 'log', 'trace' ], true ))
+        -> setInfo(         $this -> getParam([ 'app', 'log', 'info' ], true ))
+        -> setWarning(      $this -> getParam([ 'app', 'log', 'warning' ], true ))
+        -> setError(        $this -> getParam([ 'app', 'log', 'error' ], true ))
+        -> setJob(          $this -> getParam([ 'app', 'log', 'job' ], true ))
+        -> setColored(      $this -> getParam([ 'app', 'log', 'colored' ], true ))
+        -> setHeader(       $this -> getParam([ 'app', 'log', 'header' ], true ))
+        -> setTree(         $this -> getParam([ 'app', 'log', 'tree' ], true ))
+        -> setDumpExclude(  $this -> getParam([ 'app', 'log', 'dump-exclude' ], [] ))
+        -> setTimeWarning(  $this -> getParam([ 'app', 'log', 'time-warning-mls' ], 500 ))
+        ;
+
+        /* Установка ключа мониторинга */
+        $monitorFilePathName =  $this -> getParam([ 'app', 'monitor' ]);
+        if( is_array( $monitorFilePathName ))
+        {
+            $MonitorFilePath = $this -> getParam([ 'app', 'monitor', 'path' ]);
+            if( !empty( $monitorFilePath ))
+            {
+                $this -> getMon() -> setFilePath( $monitorFilePath );
+            }
+            $monitorFileName = $this -> getParam([ 'app', 'monitor', 'path' ]);
+            if( !empty( $monitorFileName ))
+            {
+                $this -> getMon() -> setFileName( $monitorFilePath );
+            }
+        }
+        else
+        {
+            if( !empty( $monitorFilePathName ))
+            {
+                $this -> getMon() -> setFilePathName( $monitorFilePathName );
+            }
+        }
+
+        return $this;
+    }
 
 
     /**************************************************************************
@@ -298,7 +379,7 @@ class App extends Params
     public function configUpdated()
     :bool
     {
-        $file = $this -> getConfigFileName();
+        $file = $this -> getConfigFile();
 
         clearstatcache( false, $file );
 
@@ -313,23 +394,7 @@ class App extends Params
     */
     public function configRead()
     {
-        $configFile = $this -> getConfigFileName();
-
-        $this
-        -> getLog()
-        -> trace( 'Reading configuration' )
-        -> param( 'File name', $configFile )
-        -> lineEnd();
-
-        /* Check for the presence of the default file */
-        if( empty( $configFile ) && file_exists( 'config.yaml' ) )
-        {
-            $configFile = 'config.yaml';
-            if( empty( $configFile ) && file_exists( 'config.json' ))
-            {
-                $configFile = 'config.json';
-            }
-        }
+        $configFile = $this -> getConfigFile();
 
         if( !empty( $configFile ))
         {
@@ -343,8 +408,7 @@ class App extends Params
                         'file' => $configFile,
                         'message' => 'Config file not found. Check the key --config'
                     ]
-                )
-                -> resultWarning();
+                );
             }
             else
             {
@@ -363,7 +427,6 @@ class App extends Params
                 {
                     $this -> lastFileUpdated = filemtime( $configFile );
                     $this -> addParams( $config );
-                    $this -> getLog() -> trace( 'Config readed' ) -> param( 'file', $configFile );
                     $this -> setOk();
                 }
                 else
@@ -374,68 +437,9 @@ class App extends Params
         }
 
         /* Добираем параметры из из переменных окружения и cli */
-        $cli = self::GetCLI();
+        $cli = self::getCLI();
         $this -> addParams( clArrayMerge( $_ENV,  $cli ));
 
-        /* Устанавливаем режим вывода журнала */
-        $logFile = $this -> getParamMul([[ 'app', 'log', 'file' ],'log' ]);
-
-        if( empty( $logFile ))
-        {
-            /* Switch log to console */
-            $this
-            -> getLog()
-            -> setDestination( Log::CONSOLE );
-        }
-        else
-        {
-            /* Switch log to file */
-            $this
-            -> getLog()
-            -> setDestination( Log::FILE )
-            -> setLogPath( dirname( $logFile ))
-            -> setLogFile( basename( $logFile ));
-        }
-
-        /* Устанавливаем режим вывода журнала */
-        $this -> getLog()
-        -> setEnabled(      $this -> getParam([ 'app', 'log', 'enabled' ], true ))
-        -> setTrapEnabled(  $this -> getParam([ 'app', 'log', 'trap' ], false ))
-        -> setDebug(        $this -> getParam([ 'app', 'log', 'debug' ], true ))
-        -> setTrace(        $this -> getParam([ 'app', 'log', 'trace' ], true ))
-        -> setInfo(         $this -> getParam([ 'app', 'log', 'info' ], true ))
-        -> setWarning(      $this -> getParam([ 'app', 'log', 'warning' ], true ))
-        -> setError(        $this -> getParam([ 'app', 'log', 'error' ], true ))
-        -> setJob(          $this -> getParam([ 'app', 'log', 'job' ], true ))
-        -> setColored(      $this -> getParam([ 'app', 'log', 'colored' ], true ))
-        -> setHeader(       $this -> getParam([ 'app', 'log', 'header' ], true ))
-        -> setTree(         $this -> getParam([ 'app', 'log', 'tree' ], true ))
-        -> setDumpExclude(  $this -> getParam([ 'app', 'log', 'dump-exclude' ], [] ))
-        -> setTimeWarning(  $this -> getParam([ 'app', 'log', 'time-warning-mls' ], 500 ))
-        ;
-
-        /* Установка ключа мониторинга */
-        $monitorFilePathName =  $this -> getParam([ 'app', 'monitor' ]);
-        if( is_array( $monitorFilePathName ))
-        {
-            $MonitorFilePath = $this -> getParam([ 'app', 'monitor', 'path' ]);
-            if( !empty( $monitorFilePath ))
-            {
-                $this -> getMon() -> setFilePath( $monitorFilePath );
-            }
-            $monitorFileName = $this -> getParam([ 'app', 'monitor', 'path' ]);
-            if( !empty( $monitorFileName ))
-            {
-                $this -> getMon() -> setFileName( $monitorFilePath );
-            }
-        }
-        else
-        {
-            if( !empty( $monitorFilePathName ))
-            {
-                $this -> getMon() -> setFilePathName( $monitorFilePathName );
-            }
-        }
         return $this;
     }
 
@@ -799,10 +803,22 @@ class App extends Params
     /*
         Return the config file name for application
     */
-    public function getConfigFileName()
+    public function getConfigFile()
     :string
     {
-        return $file = $this -> getParam([ 'app', 'config' ], '' );
+        $file = $this -> getParam([ 'app', 'config' ], '' );
+
+        /* Check for the presence of the default file */
+        if( empty( $file ) && file_exists( 'config.yaml' ) )
+        {
+            $file = 'config.yaml';
+            if( empty( $file ) && file_exists( 'config.json' ))
+            {
+                $file = 'config.json';
+            }
+        }
+
+        return $file;
     }
 
 

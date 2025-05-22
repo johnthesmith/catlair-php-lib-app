@@ -151,6 +151,97 @@ class Engine extends App
     /**************************************************************************
         Files path utils
     */
+
+
+    /*
+        Returns the path to the project's exchange directory.
+
+        This directory may be used to store files written by the project.
+        The application must have read and write permissions for this directory.
+        It is recommended to add this directory to .gitignore.
+
+        The directory should be used to store:
+            - Logs
+            - Temporary files
+            - Caches
+            - Monitoring data
+            - etc.
+    */
+    public function getRwPath
+    (
+        /* Additional path inside the 'rw' directory */
+        string $aLocal = '',
+        /* Project root directory */
+        string $aProjectPath = null
+    )
+    :string
+    {
+        return
+        $this -> getProjectPath
+        (
+            'rw',
+            empty( $aProjectPath ) ? null : $aProjectPath
+        ) .
+        clLocalPath( $aLocal );
+    }
+
+
+
+    /*
+        Returns the path to the project's file storage.
+
+        This directory contains files that are guaranteed to be preserved
+        throughout the project's lifecycle. The application is expected to
+        have read-only access to this directory.
+
+        The directory should contain:
+            - Templates
+            - Scripts
+            - Project source files
+            - etc.
+    */
+    public function getRoPath
+    (
+        /* Additional path inside the 'ro' directory */
+        string $aLocal = '',
+        /* Project root directory */
+        string $aProjectPath  = null
+    )
+    :string
+    {
+        return
+        $this -> getProjectPath
+        (
+            'ro', empty( $aProjectPath ) ? null : $aProjectPath
+        ) .
+        clLocalPath( $aLocal );
+    }
+
+
+
+    /*
+        Return logs pathe
+        PROJECT/logs/local...
+    */
+    public function getLogsPath
+    (
+        /* Local path from payload directory */
+        string $aLocal      = null,
+        /* Optional specific project */
+        string $aProject    = null,
+    )
+    :string
+    {
+        return
+        $this -> getRwPath
+        (
+            'logs',
+            empty( $aProject ) ? null : $aProject
+        )
+        . clLocalPath( $aLocal );
+    }
+
+
     /*
         Return path to payloads libraries
         PROJECT/payload/local...
