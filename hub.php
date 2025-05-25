@@ -92,8 +92,6 @@ class Hub extends Payload
 
     /*
         Returns the path for storing payload states
-        ./rw/store/a/b/c/abc....bin.
-        The file name is formed using the scatter name.
     */
     public function getStatePath
     (
@@ -103,24 +101,9 @@ class Hub extends Payload
     /* Filename of state */
     :string
     {
-        /* Get current class name */
-        $className = get_class( $this );
-
-        /* Check aPath type */
-        if( !is_array( $aPath ))
-        {
-            $aPath = [ $aPath ];
-        }
-
-        /* Add first element in to array - class name */
-        array_unshift( $aPath, $className );
-
-        /* Build file name */
-        $file = clScatterName( hash('sha256', implode( '-', $aPath )));
-
-        /* Return filename with RW path */
-        return $this -> getRwPath( 'store'. $file . '.bin' );
+        return $this -> getApp() -> getStatePath( $this, $aPath );
     }
+
 
 
 
@@ -275,6 +258,7 @@ class Hub extends Payload
         Storage functionality for payload states
     */
 
+
     /*
         Sets the value in the payload storage.
         States are stored within the application for the payload class.
@@ -293,18 +277,53 @@ class Hub extends Payload
         int $aSSLVectorLength   = 16
     )
     {
-        return $this -> resultFrom
-        (
-            clWriteStore
+        if( $this -> isOk() )
+        {
+            $this -> getApp() -> setState
             (
-                $this -> getStatePath( $aPath ),
+                $this,
+                $aPath,
                 $aValue,
                 $aSSLKey,
                 $aSSLMethod,
                 $aSSLVectorLength
-            )
-        );
+            ) -> resultTo( $this );
+        }
+        return $this;
+    }
 
+
+
+    /*
+        Sets the value in the payload storage.
+        States are stored within the application for the payload class.
+    */
+    public function setStateShare
+    (
+        /* Key name or path as an array of strings */
+        string | array $aPath,
+        /* Value to set */
+        $aValue,
+        /* Encryption key */
+        ?string $aSSLKey            = null,
+        /* Encryption method from openssl_get_cipher_methods() */
+        string $aSSLMethod         = 'aes-256-cbc',
+        /* Initialization vector length */
+        int $aSSLVectorLength   = 16
+    )
+    {
+        if( $this -> isOk() )
+        {
+            $this -> getApp() -> setState
+            (
+                null,
+                $aPath,
+                $aValue,
+                $aSSLKey,
+                $aSSLMethod,
+                $aSSLVectorLength
+            ) -> resultTo( $this );
+        }
         return $this;
     }
 
@@ -324,14 +343,38 @@ class Hub extends Payload
         $aSSLKey    = null
     )
     {
-        $result = null;
-        $r = clReadStore
+        return $this -> getApp() -> getState
         (
-            $result,
-            $this -> getStorePath( $aPath ),
+            $this,
+            $aPath,
             $aDefault,
             $aSSLKey
         );
-        return $result;
     }
+
+
+
+    /*
+        Returns the value from the payload storage.
+        States are stored within the application for the payload class.
+    */
+    public function getStateShare
+    (
+        /* Key name or path as an array of strings */
+        string | array $aPath,
+        /* Default value if resul absent */
+        $aDefault   = null,
+        /* SSL encryption key */
+        $aSSLKey    = null
+    )
+    {
+        return $this -> getApp() -> getState
+        (
+            null,
+            $aPath,
+            $aDefault,
+            $aSSLKey
+        );
+    }
+
 }

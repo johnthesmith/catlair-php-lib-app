@@ -48,6 +48,13 @@ class Engine extends App
     /* Default project */
     const PROJECTS = [ '.', '../default' ];
 
+    /* Default payload route */
+    const ROUTE_DEFAULT =
+    [
+        'library'   => 'api.php',
+        'class'     => '\catlair\Api',
+        'enabled'   => true
+    ];
 
     /*
         Create Engine Appllication object
@@ -219,6 +226,43 @@ class Engine extends App
 
 
 
+
+    /*
+        Returns the path for storing payload states
+        ./rw/store/a/b/c/abc....bin.
+        The file name is formed using the scatter name.
+    */
+    public function getStatePath
+    (
+        /* Payload class */
+        Payload | null $payload,
+        /* String of key name or array of strings */
+        string | array $aPath
+    )
+    /* Filename of state */
+    :string
+    {
+        /* Check aPath type */
+        if( !is_array( $aPath ))
+        {
+            $aPath = [ $aPath ];
+        }
+
+        /* Add first element in to array - class name */
+        array_unshift
+        (
+            $aPath,
+            empty( $payload ) ? 'null' : get_class( $payload )
+        );
+
+        /* Build file name */
+        $file = clScatterName( hash('sha256', implode( '-', $aPath )));
+
+        /* Return filename with RW path */
+        return $this -> getRwPath( 'store'. $file . '.bin' );
+    }
+
+
     /*
         Return logs pathe
         PROJECT/logs/local...
@@ -242,6 +286,7 @@ class Engine extends App
     }
 
 
+
     /*
         Return path to payloads libraries
         PROJECT/payload/local...
@@ -256,7 +301,7 @@ class Engine extends App
     :string
     {
         return
-        $this -> getProjectPath
+        $this -> getRoPath
         (
             'payload',
             empty( $aProject ) ? null : $aProject
@@ -280,7 +325,7 @@ class Engine extends App
     {
         return $this -> getPayloadPath
         (
-            $aPayloadName . '.php',
+            $aPayloadName,
             $aProject
         );
     }
@@ -297,8 +342,8 @@ class Engine extends App
     */
     public function getPayloadFileAny
     (
-        /* The name of the payload in the format any/path/payload */
-        ? string $aPayload = '',
+        /* The name of the payload file */
+        ? string $aPayloadFile = '',
     )
     {
         /* Запрос перечня проектов */
@@ -310,11 +355,11 @@ class Engine extends App
                 /* Return default ptoject path */
                 $lib = self::getPayloadFile
                 (
-                    $aPayload,
+                    $aPayloadFile,
                     $projectPath
                 );
                 $this -> getLog()
-                -> trace( 'Looking at the librarby' )
+                -> trace( 'Looking for library' )
                 -> param( 'path', $lib );
                 $result = realpath( $lib );
                 if( !empty( $result ))
@@ -327,14 +372,76 @@ class Engine extends App
         if( !empty( $result ))
         {
             $this -> getLog()
-            -> trace( 'Use library' )
-            -> param( 'payload', $aPayload )
-            -> param( 'file', $result );
+            -> trace( 'Found library' )
+            -> param( 'payloadFile', $aPayloadFile )
+            -> param( 'realFile', $result );
         }
 
         return $result;
     }
 
+
+
+    /*
+        Return path to route folder
+        PROJECT/ro/router/local...
+    */
+    public function getRouterPath
+    (
+        /* Local path from router directory */
+        string $aLocal      = null,
+        /* Optional specific project */
+        string $aProject    = null,
+    )
+    :string
+    {
+        return
+        $this -> getRoPath( 'router', $aProject ?: null )
+        . clLocalPath( $aLocal );
+    }
+
+
+
+    /*
+        Retrieves the route path
+        A sequential search is performed based on the project list.
+        If the payload is not found, it returns false.
+    */
+    public function getRouteFileAny
+    (
+        /* The name of the payload in the format any/path/payload */
+        ? string $aPath = '',
+    )
+    {
+        /* Запрос перечня проектов */
+        $projects = $this -> getProjects();
+        foreach( $projects as $projectPath )
+        {
+            if( !empty( $projectPath ))
+            {
+                /* Return default ptoject path */
+                $file = self::getRouterPath( $aPath, $projectPath );
+                $this -> getLog()
+                -> trace( 'Looking for route' )
+                -> param( 'path', $file )
+                -> lineEnd();
+                $result = realpath( $file );
+                if( !empty( $result ))
+                {
+                    break;
+                }
+            }
+        }
+
+        if( !empty( $result ))
+        {
+            $this -> getLog()
+            -> trace( 'Found route' )
+            -> param( 'file', $result );
+        }
+
+        return $result;
+    }
 
 
     /**************************************************************************
@@ -427,4 +534,108 @@ class Engine extends App
         /* Returned the list of payloads */
         return $payloads;
     }
+
+
+
+    /**************************************************************************
+        Storage functionality for payload states
+    */
+
+    /*
+        Sets the value in the payload storage.
+        States are stored within the application for the payload class.
+    */
+    public function setState
+    (
+        /* Payload or null */
+        Payload | null $aPayload,
+        /* Key name or path as an array of strings */
+        string | array $aPath,
+        /* Value to set */
+        $aValue,
+        /* Encryption key */
+        string | null $aSSLKey  = null,
+        /* Encryption method from openssl_get_cipher_methods() */
+        string $aSSLMethod      = 'aes-256-cbc',
+        /* Initialization vector length */
+        int $aSSLVectorLength   = 16
+    )
+    {
+        return clWriteStore
+        (
+            $this -> getStatePath( $aPayload, $aPath ),
+            $aValue,
+            $aSSLKey,
+            $aSSLMethod,
+            $aSSLVectorLength
+        );
+    }
+
+
+
+    /*
+        Returns the value from the payload storage.
+        States are stored within the application for the payload class.
+    */
+    public function getState
+    (
+        /* Payload or null */
+        Payload|null $aPayload,
+        /* Key name or path as an array of strings */
+        string | array $aPath,
+        /* Default value if resul absent */
+        $aDefault   = null,
+        /* SSL encryption key */
+        $aSSLKey    = null
+    )
+    {
+        $value = null;
+
+        clReadStore
+        (
+            $value,
+            $this -> getStatePath( $aPayload, $aPath ),
+            $aDefault,
+            $aSSLKey
+        );
+        return $value;
+    }
+
+
+
+    /*
+        Return payload route array
+    */
+    public function getRoute
+    (
+        /* Route name */
+        string $aPayloadName
+    )
+    /* Route array */
+    :array
+    {
+        $result = [];
+
+        $file = $this -> getRouteFileAny( $aPayloadName . '.yaml' );
+        if( $file !== false )
+        {
+            $result = clParse( @file_get_contents( $file ), 'yaml', $this );
+        }
+        else
+        {
+            $this
+            -> getLog()
+            -> trace( 'Route not found' )
+            -> param( 'payload', $aPayloadName )
+            -> lineEnd();
+        }
+
+        $result
+        = $result
+        + $this -> getParam( [ 'engine', 'default', 'route' ], [] )
+        + self::ROUTE_DEFAULT;
+
+        return ( $result[ 'enabled' ] ?? true ) ? $result : [];
+    }
 }
+

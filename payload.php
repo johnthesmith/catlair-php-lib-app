@@ -56,10 +56,10 @@ require_once 'engine.php';
 class Payload extends Params
 {
     /* Application object */
-    private ?Engine $app        = null;
+    private Engine | null $app      = null;
 
     /* Parent payload object during mutation and cloning */
-    private ?Payload $parent = null;
+    private Payload | null $parent  = null;
 
 
 
@@ -120,19 +120,22 @@ class Payload extends Params
             - snake_case
         */
         string $aPayloadName    = null,
+        /*
+            Parent payload for mutations
+        */
         Payload $aParent        = null
     )
     {
-        /* Define payload object */
-        $payload = null;
         /* Define result object */
-        $result = new Result();
-        /* Define class name */
-        $className = null;
-        /* Define list of classes */
-        $classes = [];
+        $result     = new Result();
 
-        $library = $aApp -> getPayloadFileAny( $aPayloadName );
+        /* Build route, from path, config, or ROUTE_DEFAULT */
+        $route = $aApp -> getRoute( $aPayloadName );
+        $aApp -> getLog() -> dump( $route, 'Final route' ) -> lineEnd();
+
+        /* Retrive library name */
+        $library = $aApp -> getPayloadFileAny( $route[ 'library'] );
+
 
         /* Loading library */
         if( empty( $library ))
@@ -150,47 +153,36 @@ class Payload extends Params
         }
         else
         {
-            $classes = $aApp -> loadLibrary( $library, $result );
+            $aApp -> loadLibrary( $library, $result );
         }
 
         if( $result -> isOk() )
         {
-            if( count( $classes ) > 0 )
+            if( class_exists( $route[ 'class'] ))
             {
-                $className = $classes[ 0 ];
+                $aApp
+                -> getLog()
+                -> trace( 'Use class ' )
+                -> param( 'name', $route[ 'class' ]);
             }
             else
             {
                 $result -> setResult
                 (
-                    'payload-library-no-classes',
+                    'payload-class-not-found',
                     [
-                        'file'          => $library,
-                        'payload'       => $aPayloadName
-                    ]
-                );
-            }
-        }
-
-        if( $result -> isOk() )
-        {
-            if( !is_subclass_of( $className, Payload::class ))
-            {
-                $result -> setResult
-                (
-                    'first-class-is-not-payload',
-                    [
-                        'file'      => $library,
+                        'library'   => $library,
                         'payload'   => $aPayloadName,
-                        'class'     => $className
+                        'class'     => $route[ 'class' ]
                     ]
                 );
             }
-            else
-            {
-                /* Payload creation */
-                $payload = new $className( $aApp, $aParent );
-            }
+        }
+
+        if( $result -> isOk() )
+        {
+            /* Payload creation */
+            $payload = new $route[ 'class' ]( $aApp, $aParent );
         }
 
         if( empty( $payload ) )
@@ -202,12 +194,12 @@ class Payload extends Params
             $payload = new Payload( $aApp );
         }
 
+
         /* Set result code */
         $payload -> resultFrom( $result );
 
         /* Call event */
         $payload -> call( 'onCreate', [], true );
-
 
         return $payload;
     }
@@ -595,7 +587,7 @@ class Payload extends Params
         return self::getPayloadPath
         (
             $aApp,
-            $aPayloadName . '.php',
+            $aPayloadName,
             $aProject
         );
     }

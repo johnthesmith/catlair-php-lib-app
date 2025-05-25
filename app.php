@@ -102,8 +102,6 @@ class App extends Params
     private $mon = null;
     /* Log object */
     private $log = null;
-    /* Loaded classes list */
-    private $loadedClasses = [];
 
     /*
         States of application
@@ -136,14 +134,14 @@ class App extends Params
         */
         $this
 
+        /* Retrieving parameters from the CLI */
+        -> addParams( self::getCLI() )
+
         /* Calling configuration procedures in child classes to implement client */
         -> onConfig()
 
         /* Log and monitoring events */
         -> onLogSetting()
-
-        /* Retrieving parameters from the CLI */
-        -> addParams( self::getCLI() )
 
         /* Retrieving parameters from the env */
         -> addParams( $_SERVER )
@@ -726,8 +724,8 @@ class App extends Params
 
 
     /*
-        Загружает библиотеку, если она еще не загружена.
-        Возвращает список новых классов, объявленных в библиотеке.
+        Load libray.
+        Return class name if exists
     */
     public function loadLibrary
     (
@@ -737,62 +735,47 @@ class App extends Params
         Result $result
     )
     /* List of classes */
-    :array
+    :string | null
     {
-        /* Нормализуем имя файла*/
+        /* Define class name */
+        $className = null;
+        /* Normalize file name */
         $aFilePath = realpath( $aFilePath );
-
-        /* Получаем список классов по файлу из массива */
-        $classes = clValueFromObject
-        (
-            $this -> loadedClasses,
-            $aFilePath,
-            []
-        );
-
-        if( empty( $classes ))
+        /* Get file name */
+        $file = pathinfo( $aFilePath, PATHINFO_FILENAME );
+        if( !empty( $file ))
         {
-            /* Если список пуст ... */
-            /* получаем список текущих классов */
-            $prevClasses = get_declared_classes();
-            /* грузим файл */
-            if( file_exists( $aFilePath ))
+            try
             {
-                /* Проверяем, загружен ли файл. Если нет, загружаем. */
-                if( !in_array( $aFilePath, get_included_files()) )
-                {
-                    try
-                    {
-                        /* Loading the library */
-                        require_once( $aFilePath );
-                    }
-                    catch( \Throwable $error )
-                    {
-                        $result -> setResult
-                        (
-                            'payload-library-load-error',
-                            [
-                                'library'   => $aFilePath,
-                                'message'   => $error -> getMessage(),
-                                'file'      => $error -> getFile(),
-                                'line'      => $error -> getLine()
-                            ]
-                        );
-                    }
-                }
-                $newClasses = get_declared_classes();
-                $classes = array_values( array_diff( $newClasses, $prevClasses ));
-                $this -> loadedClasses[ $aFilePath ] = $classes;
+                /* Loading the library */
+                require_once( $aFilePath );
             }
-            else
+            catch( \Throwable $error )
             {
-                $this -> getLog()
-                -> warning( 'library not found' )
-                -> param( 'file', $aFilePath )
-                -> lineEnd();
+                $result -> setResult
+                (
+                    'payload-library-load-error',
+                    [
+                        'library'   => $aFilePath,
+                        'message'   => $error -> getMessage(),
+                        'file'      => $error -> getFile(),
+                        'line'      => $error -> getLine()
+                    ]
+                );
             }
         }
-        return $classes;
+        else
+        {
+            $result -> setResult
+            (
+                'payload-library-not-found',
+                [
+                    'library'   => $file
+                ]
+            );
+        }
+
+        return $className;
     }
 
 
@@ -877,7 +860,7 @@ class App extends Params
     /*
         Returns the application state, error message, and others
     */
-    public function getState()
+    public function getAppState()
     : array
     {
         return
