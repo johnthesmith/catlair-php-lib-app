@@ -136,7 +136,6 @@ class Payload extends Params
         /* Retrive library name */
         $library = $aApp -> getPayloadFileAny( $route[ 'library'] );
 
-
         /* Loading library */
         if( empty( $library ))
         {
@@ -183,6 +182,10 @@ class Payload extends Params
         {
             /* Payload creation */
             $payload = new $route[ 'class' ]( $aApp, $aParent );
+            if( !empty( $route[ 'method' ] ))
+            {
+                $payload -> call( $route[ 'method' ], $route[ 'query' ]);
+            }
         }
 
         if( empty( $payload ) )
@@ -193,7 +196,6 @@ class Payload extends Params
             */
             $payload = new Payload( $aApp );
         }
-
 
         /* Set result code */
         $payload -> resultFrom( $result );

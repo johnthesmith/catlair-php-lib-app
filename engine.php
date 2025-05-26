@@ -16,7 +16,8 @@
 */
 
 /*
-    Fork from pusa.dev https://gitlab.com/catlair/pusa/-/tree/main
+    Fork and full refactoring
+    from pusa.dev https://gitlab.com/catlair/pusa/-/tree/main
 */
 
 
@@ -28,6 +29,23 @@ namespace catlair;
 /*
     Application engine. Inherits from App.
     Extends the application with functionality for handling Payload modules.
+
+    # Payload Usage Instructions
+
+    1. **Create PHP payload class**
+       - Place your class file in the appropriate payload directory.
+       - Ensure class name and namespace match the route definition.
+       - Implement necessary methods (e.g., `onCreate`, custom methods).
+
+    2. **Define route configuration**
+       - Create route YAML file with keys: `library`, `class`, `method` (optional), etc.
+       - Use flat or nested route naming (e.g., `path/to/route` or `flat-route`).
+       - Place method name if you want it invoked automatically during payload creation.
+
+    3. **Create payload instance in code**
+       - Call `Payload::create($engineApp, 'route-name')`.
+       - The method from the route will be called automatically if defined.
+       - Use chaining or call additional methods on returned payload object as needed.
 */
 
 
@@ -51,9 +69,10 @@ class Engine extends App
     /* Default payload route */
     const ROUTE_DEFAULT =
     [
-        'library'   => 'api.php',
-        'class'     => '\catlair\Api',
-        'enabled'   => true
+        'library' => 'default.php',
+        'class' => '/catlair/Default',
+        'metod' => '',
+        'query' => []
     ];
 
     /*
@@ -90,8 +109,6 @@ class Engine extends App
                 [
                     '--{' . self::ID . '.payload||payload}=[PAYLOAD]    | ' .
                     'Payload module for running ' ,
-                    '--{' . self::ID . '.method||method}=[METHOD]       | ' .
-                    'Payload method',
                     '--' . self::ID . '.projects=path/project1;...      | ' .
                     'List of project paths for searching ' .
                     'components in the current project. Default value is ' .
@@ -115,8 +132,7 @@ class Engine extends App
     public function onRun()
     :self
     {
-        $payload = $this -> getParamMul([[ self::ID, 'payload' ], 'payload' ]);
-        $method = $this -> getParamMul([[ self::ID, 'method' ], 'method' ]);
+        $payload = $this -> getParam([ self::ID, 'payload' ]);
 
         $this -> validate
         (
@@ -127,24 +143,9 @@ class Engine extends App
             ]
         );
 
-        $this -> validate
-        (
-            empty( $method ),
-            'engine-method-not-found',
-            [
-                'message' => 'use --engine.method cli argument'
-            ]
-        );
-
         if( $this -> isOk() )
         {
-            Payload::create
-            (
-                $this,
-                $payload
-            )
-            -> run( $method )
-            -> resultTo( $this );
+            Payload::create( $this, $payload ) -> resultTo( $this );
         }
 
         $this -> getMon() -> flush();
@@ -603,12 +604,13 @@ class Engine extends App
 
 
 
+
     /*
         Return payload route array
     */
     public function getRoute
     (
-        /* Route name */
+        /* Route name with delimiter `/` */
         string $aPayloadName
     )
     /* Route array */
@@ -616,7 +618,17 @@ class Engine extends App
     {
         $result = [];
 
-        $file = $this -> getRouteFileAny( $aPayloadName . '.yaml' );
+        $full = explode( '/', $aPayloadName );
+
+        /* Extract head element of path */
+        $head = $full[0] ?? null;
+        $file = $this -> getRouteFileAny( $head . '.yaml' );
+
+        if( $file === false && count( $full ) > 1 )
+        {
+            $file = $this -> getRouteFileAny( $aPayloadName . '.yaml' );
+        }
+
         if( $file !== false )
         {
             $result = clParse( @file_get_contents( $file ), 'yaml', $this );
@@ -625,7 +637,7 @@ class Engine extends App
         {
             $this
             -> getLog()
-            -> trace( 'Route not found' )
+            -> trace( 'Payload route not found' )
             -> param( 'payload', $aPayloadName )
             -> lineEnd();
         }
