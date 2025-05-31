@@ -182,9 +182,10 @@ class Payload extends Params
         {
             /* Payload creation */
             $payload = new $route[ 'class' ]( $aApp, $aParent );
+            $query = is_array( $route[ 'query' ]) ? $route[ 'query' ] : [];
             if( !empty( $route[ 'method' ] ))
             {
-                $payload -> call( $route[ 'method' ], $route[ 'query' ]);
+                $payload -> call( $route[ 'method' ], $query );
             }
         }
 
@@ -195,10 +196,9 @@ class Payload extends Params
                 a default Payload object is created
             */
             $payload = new Payload( $aApp );
+            $payload -> resultFrom( $result );
         }
 
-        /* Set result code */
-        $payload -> resultFrom( $result );
 
         /* Call event */
         $payload -> call( 'onCreate', [], true );
@@ -263,15 +263,16 @@ class Payload extends Params
     public function call
     (
         /* Method name */
-        string  $aMethod,
+        string          $aMethod,
         /* Additional arguments */
-        array   $aArguments = [],
+        array | null    $aArguments = [],
         /* Suppress the message about the method's absence */
-        bool    $aSilent = false
+        bool            $aSilent = false
     )
     {
         if( $this -> isOk() )
         {
+            $aArguments ??= [];
             if( method_exists( $this, $aMethod ))
             {
                 call_user_func_array

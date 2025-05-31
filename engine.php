@@ -71,7 +71,7 @@ class Engine extends App
     [
         'library' => 'default.php',
         'class' => '/catlair/Default',
-        'metod' => '',
+        'method' => '',
         'query' => []
     ];
 
@@ -607,6 +607,14 @@ class Engine extends App
 
     /*
         Return payload route array
+
+        Each route key will be obtained sequentially
+        from the following sources, if they exist:
+
+            1. iterating through the list of projects to check for a route file
+            2. reading the default route from the configuration key
+            engine.default.route
+            3. falling back to self::ROUTE_DEFAULT
     */
     public function getRoute
     (
@@ -617,6 +625,16 @@ class Engine extends App
     :array
     {
         $result = [];
+
+        /* Check empty route */
+        if( empty( $aPayloadName ))
+        {
+            $aPayloadName = $this -> getParam
+            (
+                [ 'engine', 'default', 'route-name' ],
+                'default'
+            );
+        }
 
         $full = explode( '/', $aPayloadName );
 
@@ -642,6 +660,7 @@ class Engine extends App
             -> lineEnd();
         }
 
+        /* Build route from sources */
         $result
         = $result
         + $this -> getParam( [ 'engine', 'default', 'route' ], [] )
