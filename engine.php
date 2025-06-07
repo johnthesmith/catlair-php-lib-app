@@ -158,6 +158,20 @@ class Engine extends App
 
     /**************************************************************************
         Files path utils
+        Main structire
+            root/
+                rw/
+                    private/
+                        log
+                        cache
+                    public/
+                        user-data
+                ro/
+                    private/
+                        scripts
+                    public/
+                        content
+                        file
     */
 
 
@@ -167,13 +181,6 @@ class Engine extends App
         This directory may be used to store files written by the project.
         The application must have read and write permissions for this directory.
         It is recommended to add this directory to .gitignore.
-
-        The directory should be used to store:
-            - Logs
-            - Temporary files
-            - Caches
-            - Monitoring data
-            - etc.
     */
     public function getRwPath
     (
@@ -201,12 +208,6 @@ class Engine extends App
         This directory contains files that are guaranteed to be preserved
         throughout the project's lifecycle. The application is expected to
         have read-only access to this directory.
-
-        The directory should contain:
-            - Templates
-            - Scripts
-            - Project source files
-            - etc.
     */
     public function getRoPath
     (
@@ -223,6 +224,44 @@ class Engine extends App
             'ro', empty( $aProjectPath ) ? null : $aProjectPath
         ) .
         clLocalPath( $aLocal );
+    }
+
+
+
+    /*
+    	Returns the path to the project's rw/public directory.
+
+    	This directory is used for public files with read-write access.
+    	It is recommended to add this directory to .gitignore.
+    */
+    public function getRwPublicPath
+    (
+    	string $aLocal = '',
+    	string $aProjectPath = null
+    )
+    :string
+    {
+    	return
+    	$this -> getRwPath( 'public' . clLocalPath( $aLocal ), $aProjectPath );
+    }
+
+
+
+    /*
+    	Returns the path to the project's rw/private directory.
+
+    	This directory is used for private files with read-write access.
+    	It is recommended to add this directory to .gitignore.
+    */
+    public function getRwPrivatePath
+    (
+    	string $aLocal = '',
+    	string $aProjectPath = null
+    )
+    :string
+    {
+    	return
+    	$this -> getRwPath( 'private' . clLocalPath( $aLocal ), $aProjectPath );
     }
 
 
@@ -260,13 +299,17 @@ class Engine extends App
         $file = clScatterName( hash('sha256', implode( '-', $aPath )));
 
         /* Return filename with RW path */
-        return $this -> getRwPath( 'store'. $file . '.bin' );
+        return $this -> getRwPrivatePath
+        (
+            'store' . clLocalPath( $file . '.bin' )
+        );
     }
 
 
+
     /*
-        Return logs pathe
-        PROJECT/logs/local...
+        Return logs path
+        PROJECT/rw/private/logs/local...
     */
     public function getLogsPath
     (
@@ -278,11 +321,14 @@ class Engine extends App
     :string
     {
         return
-        $this -> getRwPath
+        $this -> getRwPrivatePath
         (
             'logs',
             empty( $aProject ) ? null : $aProject
         )
+
+
+        TODO
         . clLocalPath( $aLocal );
     }
 
