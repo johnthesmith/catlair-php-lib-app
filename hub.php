@@ -91,6 +91,74 @@ class Hub extends Payload
 
 
     /*
+        Returns the path to the project's exchange directory.
+    */
+    public function getRwPrivatePath
+    (
+        /* Additional path inside the 'rw' directory */
+        string $aLocal = '',
+        /* Project root directory */
+        string $aProjectPath = null
+    )
+    :string
+    {
+        return $this -> getApp() -> getRwPrivatePath( $aLocal, $aProjectPath );
+    }
+
+
+
+    /*
+        Returns the path to the project's exchange directory.
+    */
+    public function getRwPublicPath
+    (
+        /* Additional path inside the 'rw' directory */
+        string $aLocal = '',
+        /* Project root directory */
+        string $aProjectPath = null
+    )
+    :string
+    {
+        return $this -> getApp() -> getRwPublicPath( $aLocal, $aProjectPath );
+    }
+
+
+
+    /*
+        Returns the path to the project's file storage.
+    */
+    public function getRoPrivatePath
+    (
+        /* Additional path inside the 'ro' directory */
+        string $aLocal = '',
+        /* Project root directory */
+        string $aProjectPath  = null
+    )
+    :string
+    {
+        return $this -> getApp() -> getRoPrivatePath( $aLocal, $aProjectPath );
+    }
+
+
+
+    /*
+        Returns the path to the project's file storage.
+    */
+    public function getRoPublicPath
+    (
+        /* Additional path inside the 'ro' directory */
+        string $aLocal = '',
+        /* Project root directory */
+        string $aProjectPath  = null
+    )
+    :string
+    {
+        return $this -> getApp() -> getRoPublicPath( $aLocal, $aProjectPath );
+    }
+
+
+
+    /*
         Returns the path for storing payload states
     */
     public function getStatePath

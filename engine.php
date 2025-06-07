@@ -60,6 +60,10 @@ require_once 'payload.php';
 */
 class Engine extends App
 {
+    /* Folder name for private and public files */
+    const PRIVATE_FOLDER = 'private';
+    const PUBLIC_FOLDER = 'public';
+
     /* Engine id for configuration and information */
     const ID = 'engine';
 
@@ -230,9 +234,7 @@ class Engine extends App
 
     /*
     	Returns the path to the project's rw/public directory.
-
     	This directory is used for public files with read-write access.
-    	It is recommended to add this directory to .gitignore.
     */
     public function getRwPublicPath
     (
@@ -242,16 +244,18 @@ class Engine extends App
     :string
     {
     	return
-    	$this -> getRwPath( 'public' . clLocalPath( $aLocal ), $aProjectPath );
+    	$this -> getRwPath
+    	(
+    	    self::PUBLIC_FOLDER . clLocalPath( $aLocal ),
+    	    $aProjectPath
+	    );
     }
 
 
 
     /*
     	Returns the path to the project's rw/private directory.
-
     	This directory is used for private files with read-write access.
-    	It is recommended to add this directory to .gitignore.
     */
     public function getRwPrivatePath
     (
@@ -261,7 +265,53 @@ class Engine extends App
     :string
     {
     	return
-    	$this -> getRwPath( 'private' . clLocalPath( $aLocal ), $aProjectPath );
+    	$this -> getRwPath
+    	(
+    	    self::PRIVATE_FOLDER . clLocalPath( $aLocal ),
+    	    $aProjectPath
+	    );
+    }
+
+
+
+    /*
+    	Returns the path to the project's rw/public directory.
+       	This directory is used for public files with read-write access.
+    */
+    public function getRoPrivatePath
+    (
+    	string $aLocal = '',
+    	string $aProjectPath = null
+    )
+    :string
+    {
+    	return
+    	$this -> getRoPath
+    	(
+    	    self::PRIVATE_FOLDER . clLocalPath( $aLocal ),
+    	    $aProjectPath
+	    );
+    }
+
+
+
+    /*
+    	Returns the path to the project's ro/public directory.
+    	This directory is used for read only public files.
+    */
+    public function getRoPublicPath
+    (
+    	string $aLocal = '',
+    	string $aProjectPath = null
+    )
+    :string
+    {
+    	return
+    	$this -> getRoPath
+    	(
+    	    self::PUBLIC_FOLDER . clLocalPath( $aLocal ),
+    	    $aProjectPath
+	    );
     }
 
 
@@ -269,7 +319,7 @@ class Engine extends App
 
     /*
         Returns the path for storing payload states
-        ./rw/store/a/b/c/abc....bin.
+        ./rw/private/store/a/b/c/abc....bin.
         The file name is formed using the scatter name.
     */
     public function getStatePath
@@ -320,16 +370,11 @@ class Engine extends App
     )
     :string
     {
-        return
-        $this -> getRwPrivatePath
+        return $this -> getRwPrivatePath
         (
-            'logs',
-            empty( $aProject ) ? null : $aProject
-        )
-
-
-        TODO
-        . clLocalPath( $aLocal );
+            'logs' . clLocalPath( $aLocal ),
+            $aProject
+        );
     }
 
 
@@ -347,13 +392,11 @@ class Engine extends App
     )
     :string
     {
-        return
-        $this -> getRoPath
+        return $this -> getRoPrivatePath
         (
-            'payload',
-            empty( $aProject ) ? null : $aProject
-        )
-        . clLocalPath( $aLocal );
+            'payload' . clLocalPath( $aLocal ),
+            $aProject
+        );
     }
 
 
@@ -442,9 +485,11 @@ class Engine extends App
     )
     :string
     {
-        return
-        $this -> getRoPath( 'router', $aProject ?: null )
-        . clLocalPath( $aLocal );
+        return $this -> getRoPrivatePath
+        (
+            'router' . clLocalPath( $aLocal ),
+             $aProject
+        );
     }
 
 
