@@ -132,24 +132,27 @@ class App extends Params
             Configuration
             https://github.com/johnthesmith/scraps/blob/main/images/CatlairConf.jpg
         */
+
         $this
-
         /* Retrieving parameters from the env */
-        -> addParams( $_SERVER )
-
+        -> appendParams( $_SERVER )
+        /*
+            Retrieving parameters from the env
+            To ensure all environment variables are available in $_ENV,
+            set php.ini directive: variables_order = "EGPCS"
+            Without 'E', $_ENV will be empty, breaking env var access.
+        */
+        -> appendParams( $_ENV )
         /* Retrieving parameters from the CLI */
-        -> addParams( self::getCLI() )
-
-        /* Calling configuration procedures in child classes to implement client */
-        -> onConfig()
-
-        /* Log and monitoring events */
-        -> onLogSetting()
-
-
+        -> appendParams( self::getCLI() )
         /* Retrieving parameters from the configuration */
         -> configRead()
+        /* Log and monitoring events */
+        -> onLogSetting()
+        /* Calling configuration procedures in child classes to implement client */
+        -> onConfig()
         ;
+
 
         /*
             Creating a reference to the application in a global variable.  Used
@@ -199,6 +202,8 @@ class App extends Params
     {
         return $this;
     }
+
+
 
     /*
         Help output event — can be overridden in descendants
@@ -434,10 +439,6 @@ class App extends Params
                 }
             }
         }
-
-        /* Добираем параметры из из переменных окружения и cli */
-        $cli = self::getCLI();
-        $this -> addParams( clArrayMerge( $_ENV,  $cli ));
 
         return $this;
     }
