@@ -134,6 +134,9 @@ class App extends Params
         */
         $this
 
+        /* Retrieving parameters from the env */
+        -> addParams( $_SERVER )
+
         /* Retrieving parameters from the CLI */
         -> addParams( self::getCLI() )
 
@@ -143,8 +146,6 @@ class App extends Params
         /* Log and monitoring events */
         -> onLogSetting()
 
-        /* Retrieving parameters from the env */
-        -> addParams( $_SERVER )
 
         /* Retrieving parameters from the configuration */
         -> configRead()

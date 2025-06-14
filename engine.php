@@ -111,8 +111,10 @@ class Engine extends App
             (
                 PHP_EOL,
                 [
-                    '--{' . self::ID . '.payload||payload}=[PAYLOAD]    | ' .
+                    '--{' . self::ID . '.payload}=[PAYLOAD]             | ' .
                     'Payload module for running ' ,
+                    '--{' . self::ID . '.method}=[METHOD]               | ' .
+                    'Payload method in module for running ' ,
                     '--' . self::ID . '.projects=path/project1;...      | ' .
                     'List of project paths for searching ' .
                     'components in the current project. Default value is ' .
@@ -149,7 +151,23 @@ class Engine extends App
 
         if( $this -> isOk() )
         {
-            Payload::create( $this, $payload ) -> resultTo( $this );
+            $method = $this -> getParam([ self::ID, 'method' ]);
+
+            $this -> validate
+            (
+                empty( $method ),
+                'engine-method-not-found',
+                [
+                    'message' => 'use --engine.method cli argument'
+                ]
+            );
+
+            if( $this -> isOk() )
+            {
+                Payload::create( $this, $payload )
+                -> call( $method )
+                -> resultTo( $this );
+            }
         }
 
         $this -> getMon() -> flush();
@@ -450,7 +468,8 @@ class Engine extends App
                 );
                 $this -> getLog()
                 -> trace( 'Looking for library' )
-                -> param( 'path', $lib );
+                -> param( 'path', $lib )
+                -> lineEnd();
                 $result = realpath( $lib );
                 if( !empty( $result ))
                 {
@@ -458,7 +477,6 @@ class Engine extends App
                 }
             }
         }
-
         if( !empty( $result ))
         {
             $this -> getLog()

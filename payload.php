@@ -70,7 +70,7 @@ class Payload extends Params
     private function __construct
     (
         /* Application object */
-        Engine $aApp,
+        $aApp,
         /* Parent for mutation */
         Payload $aParent = null
     )
@@ -112,25 +112,25 @@ class Payload extends Params
     static public function create
     (
         /* The entine application object */
-        Engine $aApp,
+        $aApp,
         /*
-            Payload library name
+            Payload route
             - UpperCamelCase
             - kebab-case
             - snake_case
         */
-        string $aPayloadName    = null,
+        string $aRoute = null,
         /*
             Parent payload for mutations
         */
-        Payload $aParent        = null
+        Payload $aParent = null
     )
     {
         /* Define result object */
         $result     = new Result();
 
         /* Build route, from path, config, or ROUTE_DEFAULT */
-        $route = $aApp -> getRoute( $aPayloadName );
+        $route = $aApp -> getRoute( $aRoute );
         $aApp -> getLog() -> dump( $route, 'Final route' ) -> lineEnd();
 
         /* Retrive library name */
@@ -144,7 +144,7 @@ class Payload extends Params
                 'payload-library-not-found',
                 [
                     'file'          => $library,
-                    'payload'       => $aPayloadName
+                    'payload'       => $aRoute
                 ]
             );
             /* Dump result in to log */
@@ -171,7 +171,7 @@ class Payload extends Params
                     'payload-class-not-found',
                     [
                         'library'   => $library,
-                        'payload'   => $aPayloadName,
+                        'payload'   => $aRoute,
                         'class'     => $route[ 'class' ]
                     ]
                 );
@@ -182,11 +182,6 @@ class Payload extends Params
         {
             /* Payload creation */
             $payload = new $route[ 'class' ]( $aApp, $aParent );
-            $query = is_array( $route[ 'query' ]) ? $route[ 'query' ] : [];
-            if( !empty( $route[ 'method' ] ))
-            {
-                $payload -> call( $route[ 'method' ], $query );
-            }
         }
 
         if( empty( $payload ) )
@@ -214,7 +209,7 @@ class Payload extends Params
     public function mutate
     (
         /* Class name to mutate into */
-        string $aPayloadName
+        string $aRoute
     )
     {
         $result = $this;
@@ -222,7 +217,7 @@ class Payload extends Params
         if ( $this->isOk() )
         {
             /* Create new payload */
-            $result = self::create( $this -> getApp(), $aPayloadName, $this )
+            $result = self::create( $this -> getApp(), $aRoute, $this )
             /* Transfer attributes from the parent */
             -> copyFrom( $this )
             -> call( 'onMutate', [], true );
@@ -273,6 +268,8 @@ class Payload extends Params
         if( $this -> isOk() )
         {
             $aArguments ??= [];
+            /* Replace - _ for the method name */
+            $aMethod = str_replace( '-', '_', $aMethod );
             if( method_exists( $this, $aMethod ))
             {
                 call_user_func_array
