@@ -770,10 +770,11 @@ class Engine extends App
         }
 
         /* Build route from sources */
-        $result
-        = $result
-        + $this -> getParam( [ 'engine', 'default', 'route' ], [] )
-        + self::ROUTE_DEFAULT;
+//        $result
+//        = $result
+//      + $this -> getParam( [ 'engine', 'default', 'route' ], [] )
+//        + self::ROUTE_DEFAULT
+//        ;
 
         return ( $result[ 'enabled' ] ?? true ) ? $result : [];
     }

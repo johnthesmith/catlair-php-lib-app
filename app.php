@@ -743,38 +743,56 @@ class App extends Params
         $className = null;
         /* Normalize file name */
         $aFilePath = realpath( $aFilePath );
-        /* Get file name */
-        $file = pathinfo( $aFilePath, PATHINFO_FILENAME );
-        if( !empty( $file ))
-        {
-            try
-            {
-                /* Loading the library */
-                require_once( $aFilePath );
-            }
-            catch( \Throwable $error )
-            {
-                $result -> setResult
-                (
-                    'payload-library-load-error',
-                    [
-                        'library'   => $aFilePath,
-                        'message'   => $error -> getMessage(),
-                        'file'      => $error -> getFile(),
-                        'line'      => $error -> getLine()
-                    ]
-                );
-            }
-        }
-        else
+
+        if( !is_file( $aFilePath ))
         {
             $result -> setResult
             (
-                'payload-library-not-found',
+                'payload-is-not-file',
                 [
-                    'library'   => $file
+                    'library'   => $aFilePath
                 ]
-            );
+            )
+            -> backtrace();
+        }
+        else
+        {
+            /* Get file name */
+            $file = pathinfo( $aFilePath, PATHINFO_FILENAME );
+
+            if( !empty( $file ))
+            {
+                try
+                {
+                    /* Loading the library */
+                    @require_once( $aFilePath );
+                }
+                catch( \Throwable $error )
+                {
+                    $result -> setResult
+                    (
+                        'payload-library-load-error',
+                        [
+                            'library'   => $aFilePath,
+                            'message'   => $error -> getMessage(),
+                            'file'      => $error -> getFile(),
+                            'line'      => $error -> getLine()
+                        ]
+                    )
+                    -> backtrace();
+                }
+            }
+            else
+            {
+                $result -> setResult
+                (
+                    'payload-library-not-found',
+                    [
+                        'library'   => $file
+                    ]
+                )
+                -> backtrace();
+            }
         }
 
         return $className;

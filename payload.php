@@ -39,7 +39,6 @@ namespace catlair;
         logging (inherited from the application);
         configuration (inherited from the application);
         monitoring (inherited from the application).
-
     Other functionality related to state and storage management is implemented
     in extensions — subclasses of Payload.
 */
@@ -61,6 +60,8 @@ class Payload extends Params
     /* Parent payload object during mutation and cloning */
     private Payload | null $parent  = null;
 
+    /* Caller */
+    private string | null $caller   = null;
 
 
     /*
@@ -95,17 +96,18 @@ class Payload extends Params
         (
             'payload-undefined-method',
             [
-                'Name' => $aName,
-                'Class' => get_class( $this )
+                'Method'    => $aName,
+                'Class'     => get_class( $this )
             ]
         )
+        -> backtrace()
         -> resultError();
     }
 
 
 
     /*
-        Payload module creation
+        Payload factory
         Returns a payload object of the specified class
         An optional parameter can be used
     */
@@ -120,39 +122,92 @@ class Payload extends Params
             - snake_case
         */
         string $aRoute = null,
-        /*
-            Parent payload for mutations
-        */
+        /* Caller id */
+        string | null $aCaller = null,
+        /* Parent payload for mutations */
         Payload $aParent = null
     )
     {
         /* Define result object */
-        $result     = new Result();
+        $result = new Result();
 
-        /* Build route, from path, config, or ROUTE_DEFAULT */
+        /* Build route */
         $route = $aApp -> getRoute( $aRoute );
-        $aApp -> getLog() -> dump( $route, 'Final route' ) -> lineEnd();
 
-        /* Retrive library name */
-        $library = $aApp -> getPayloadFileAny( $route[ 'library'] );
-
-        /* Loading library */
-        if( empty( $library ))
+        if( empty( $route ))
         {
+            /* Route not found */
             $result -> setResult
             (
-                'payload-library-not-found',
+                'route-not-found',
                 [
-                    'file'          => $library,
-                    'payload'       => $aRoute
+                    'route' => $aRoute
                 ]
-            );
-            /* Dump result in to log */
+            )
+            -> backtrace();
             $aApp -> resultWarning( $result );
         }
         else
         {
-            $aApp -> loadLibrary( $library, $result );
+            /* Route found */
+            $aApp -> getLog() -> dump( $route, 'Final route' ) -> lineEnd();
+            /* Read and check caller */
+            $result -> caller = $route[ 'caller' ] ?? null;
+            if( $result -> caller !== $aCaller )
+            {
+                $result -> setResult
+                (
+                    'payload-caller-invalid',
+                    [
+                        'payload'       => $aRoute,
+                        'route-caller'  => $result -> caller,
+                        'caller'        => $aCaller
+                    ]
+                )
+                -> backtrace();
+                /* Dump result in to log */
+                $aApp -> resultWarning( $result );
+            }
+            else
+            {
+                $libraryName = $route[ 'library'] ?? '';
+                if( empty( $libraryName ))
+                {
+                    $result -> setResult
+                    (
+                        'payload-library-is-empty',
+                        [
+                            'route'     => $aRoute
+                        ]
+                    )
+                    -> backtrace();
+                }
+                else
+                {
+                    /* Retrive library name */
+                    $library = $aApp -> getPayloadFileAny( $libraryName );
+
+                    /* Loading library */
+                    if( empty( $library ))
+                    {
+                        $result -> setResult
+                        (
+                            'payload-library-not-found',
+                            [
+                                'file'      => $library,
+                                'payload'   => $aRoute
+                            ]
+                        )
+                        -> backtrace();
+                        /* Dump result in to log */
+                        $aApp -> resultWarning( $result );
+                    }
+                    else
+                    {
+                        $aApp -> loadLibrary( $library, $result );
+                    }
+                }
+            }
         }
 
         if( $result -> isOk() )
@@ -174,7 +229,8 @@ class Payload extends Params
                         'payload'   => $aRoute,
                         'class'     => $route[ 'class' ]
                     ]
-                );
+                )
+                -> backtrace();
             }
         }
 
@@ -182,6 +238,8 @@ class Payload extends Params
         {
             /* Payload creation */
             $payload = new $route[ 'class' ]( $aApp, $aParent );
+            /* Call event */
+            $payload -> call( 'onCreate', [], true );
         }
 
         if( empty( $payload ) )
@@ -193,11 +251,6 @@ class Payload extends Params
             $payload = new Payload( $aApp );
             $payload -> resultFrom( $result );
         }
-
-
-        /* Call event */
-        $payload -> call( 'onCreate', [], true );
-
         return $payload;
     }
 
@@ -217,7 +270,7 @@ class Payload extends Params
         if ( $this->isOk() )
         {
             /* Create new payload */
-            $result = self::create( $this -> getApp(), $aRoute, $this )
+            $result = self::create( $this -> getApp(), $aRoute, $this -> caller, $this )
             /* Transfer attributes from the parent */
             -> copyFrom( $this )
             -> call( 'onMutate', [], true );
@@ -660,51 +713,51 @@ class Payload extends Params
     {
         if( !$this -> getApp() -> isCli() )
         {
-            $this -> setResult( 'payload-cli-only' );
+            $this -> setResult( 'payload-cli-only' ) -> backtrace();
         }
         return $this;
     }
 
 
 
-
-    /*
-        Override of the method for retrieving a parameter for the payload
-        If the parameter is not present in the payload, it will be fetched
-        from the application using the key payloads/payload/params
-    */
-    public function getParam
-    (
-        /* Array of the parameter path or the parameter name at the top level */
-        $aPath,
-        /* Default value if the parameter is missing. */
-        $aDefault = null
-    )
-    {
-        /* Retrieve the value from the payload parameters */
-        $result = $this -> getParam( $aPath, $aDefault );
-        /* Check for success, and if it fails ... */
-        if( $result === $aDefault )
-        {
-            /*
-                ... retrieve the value from the payload configuration
-                in the application, if it exists
-            */
-            $Result = $this -> getApp()
-            -> getParam
-            (
-                array_merge
-                (
-                    [ Engine::ENGINE_CONFIG_KEY, 'payloads' ],
-                    explode( '/', get_class( $this )),
-                    (array) $zPath
-                ),
-                $aDefault
-            );
-        }
-        return $result;
-    }
-
+//  Remove after 2025-07-01
+//    /*
+//        Override of the method for retrieving a parameter for the payload
+//        If the parameter is not present in the payload, it will be fetched
+//        from the application using the key payloads/payload/params
+//    */
+//    public function getParam
+//    (
+//        /* Array of the parameter path or the parameter name at the top level */
+//        $aPath,
+//        /* Default value if the parameter is missing. */
+//        $aDefault = null
+//    )
+//    {
+//        /* Retrieve the value from the payload parameters */
+//        $result = parent::getParam( $aPath, $aDefault );
+//        /* Check for success, and if it fails ... */
+//        if( $result === $aDefault )
+//        {
+//            /*
+//                ... retrieve the value from the payload configuration
+//                in the application, if it exists
+//            */
+//            $Result = $this -> getApp()
+//            -> getParam
+//            (
+//                array_merge
+//                (
+//                    [ Engine::ENGINE_CONFIG_KEY, 'payloads' ],
+//                    explode( '/', get_class( $this )),
+//                    (array) $aPath
+//                ),
+//                $aDefault
+//            );
+//        }
+//        return $result;
+//    }
+//
 
 
     /*
