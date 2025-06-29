@@ -153,7 +153,6 @@ class App extends Params
         -> onConfig()
         ;
 
-
         /*
             Creating a reference to the application in a global variable.  Used
             in the getApp function strictly for debugging purposes.
@@ -430,7 +429,7 @@ class App extends Params
                 if( $this  -> isOk() )
                 {
                     $this -> lastFileUpdated = filemtime( $configFile );
-                    $this -> addParams( $config );
+                    $this -> appendParams( $config );
                     $this -> setOk();
                 }
                 else
@@ -765,7 +764,7 @@ class App extends Params
                 try
                 {
                     /* Loading the library */
-                    @require_once( $aFilePath );
+                    require_once( $aFilePath );
                 }
                 catch( \Throwable $error )
                 {

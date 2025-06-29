@@ -64,6 +64,7 @@ class Payload extends Params
     private string | null $caller   = null;
 
 
+
     /*
         Payload module constructor
         Do not call this directly. Use the create method instead.
@@ -72,12 +73,21 @@ class Payload extends Params
     (
         /* Application object */
         $aApp,
+        /* Caller */
+        string $aCaller = null,
         /* Parent for mutation */
-        Payload $aParent = null
+        Payload | null $aParent = null,
     )
     {
-        $parent = $aParent;
+        /* Set states */
         $this -> app = $aApp;
+        $this -> parent = $aParent;
+        $this -> caller = $aCaller;
+
+        if( $this -> parent !== null )
+        {
+            $this -> resultFrom( $this -> parent );
+        }
     }
 
 
@@ -153,6 +163,7 @@ class Payload extends Params
             $aApp -> getLog() -> dump( $route, 'Final route' ) -> lineEnd();
             /* Read and check caller */
             $result -> caller = $route[ 'caller' ] ?? null;
+
             if( $result -> caller !== $aCaller )
             {
                 $result -> setResult
@@ -186,7 +197,6 @@ class Payload extends Params
                 {
                     /* Retrive library name */
                     $library = $aApp -> getPayloadFileAny( $libraryName );
-
                     /* Loading library */
                     if( empty( $library ))
                     {
@@ -234,23 +244,18 @@ class Payload extends Params
             }
         }
 
-        if( $result -> isOk() )
-        {
-            /* Payload creation */
-            $payload = new $route[ 'class' ]( $aApp, $aParent );
-            /* Call event */
-            $payload -> call( 'onCreate', [], true );
-        }
+        /* Payload creation */
+        $payload
+        = $result -> isOk()
+        ? new $route[ 'class' ]( $aApp, $aCaller, $aParent )
+        : new Payload( $aApp, $aCaller, $aParent );
 
-        if( empty( $payload ) )
-        {
-            /*
-                If the requested Payload class could not be created,
-                a default Payload object is created
-            */
-            $payload = new Payload( $aApp );
-            $payload -> resultFrom( $result );
-        }
+        /* Add createion errors if exists */
+        $payload -> mergeResultFrom( $result );
+
+        /* Call event */
+        $payload -> call( 'onCreate', [], true );
+
         return $payload;
     }
 
@@ -265,16 +270,19 @@ class Payload extends Params
         string $aRoute
     )
     {
-        $result = $this;
+//print_r('mutate');
 
-        if ( $this->isOk() )
-        {
-            /* Create new payload */
-            $result = self::create( $this -> getApp(), $aRoute, $this -> caller, $this )
-            /* Transfer attributes from the parent */
-            -> copyFrom( $this )
-            -> call( 'onMutate', [], true );
-        }
+        /* Create new payload */
+        $result =
+        self::create( $this -> getApp(), $aRoute, $this -> caller, $this )
+        /* Transfer attributes from the parent */
+        -> copyFrom( $this )
+        /* Call on mutate event */
+        -> call( 'onMutate', [], true )
+        ;
+
+//print_r( $result -> getResultHistory());
+//print_r('mutate_end');
 
         return $result;
     }
@@ -287,7 +295,7 @@ class Payload extends Params
     public function unmutate()
     {
         $result = $this -> getParent();
-        if( !empty( $result ) )
+        if( $result !== null )
         {
             $result
             /* Return parameters to parent */
@@ -318,35 +326,33 @@ class Payload extends Params
         bool            $aSilent = false
     )
     {
-        if( $this -> isOk() )
+        $aArguments ??= [];
+        /* Replace - _ for the method name */
+        $aMethod = str_replace( '-', '_', $aMethod );
+        if( method_exists( $this, $aMethod ))
         {
-            $aArguments ??= [];
-            /* Replace - _ for the method name */
-            $aMethod = str_replace( '-', '_', $aMethod );
-            if( method_exists( $this, $aMethod ))
+            call_user_func_array
+            (
+                [ $this, $aMethod ],
+                $this -> getMethodParameters( $aMethod, $aArguments )
+            );
+        }
+        else
+        {
+            if( !$aSilent )
             {
-                call_user_func_array
+                $this -> setResult
                 (
-                    [ $this, $aMethod ],
-                    $this -> getMethodParameters( $aMethod, $aArguments )
-                );
-            }
-            else
-            {
-                if( !$aSilent )
-                {
-                    $this -> setResult
-                    (
-                        'payload-method-does-not-exists',
-                        [
-                            'class' => get_class( $this ),
-                            'method' => $aMethod
-                        ],
-                    )
-                    -> resultWarning();
-                }
+                    'payload-method-does-not-exists',
+                    [
+                        'class' => get_class( $this ),
+                        'method' => $aMethod
+                    ],
+                )
+                -> resultWarning();
             }
         }
+
         return $this;
     }
 
