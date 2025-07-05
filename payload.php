@@ -267,22 +267,25 @@ class Payload extends Params
     public function mutate
     (
         /* Class name to mutate into */
-        string $aRoute
+        string $aRoute,
+        /* Caller */
+        string $aCaller = null
     )
     {
-//print_r('mutate');
-
         /* Create new payload */
         $result =
-        self::create( $this -> getApp(), $aRoute, $this -> caller, $this )
+        self::create
+        (
+            $this -> getApp(),
+            $aRoute,
+            $aCaller === null ? $this -> caller : $aCaller,
+            $this
+        )
         /* Transfer attributes from the parent */
         -> copyFrom( $this )
         /* Call on mutate event */
         -> call( 'onMutate', [], true )
         ;
-
-//print_r( $result -> getResultHistory());
-//print_r('mutate_end');
 
         return $result;
     }
