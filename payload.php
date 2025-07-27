@@ -63,8 +63,6 @@ class Payload extends Params
     /* Caller */
     private string | null $caller   = null;
 
-
-
     /*
         Payload module constructor
         Do not call this directly. Use the create method instead.
@@ -161,61 +159,41 @@ class Payload extends Params
         {
             /* Route found */
             $aApp -> getLog() -> dump( $route, 'Final route' ) -> lineEnd();
-            /* Read and check caller */
-            $result -> caller = $route[ 'caller' ] ?? null;
 
-            if( $result -> caller !== $aCaller )
+            $libraryName = $route[ 'library'] ?? '';
+            if( empty( $libraryName ))
             {
                 $result -> setResult
                 (
-                    'payload-caller-invalid',
+                    'payload-library-is-empty',
                     [
-                        'payload'       => $aRoute,
-                        'route-caller'  => $result -> caller,
-                        'caller'        => $aCaller
+                        'route'     => $aRoute
                     ]
                 )
                 -> backtrace();
-                /* Dump result in to log */
-                $aApp -> resultWarning( $result );
             }
             else
             {
-                $libraryName = $route[ 'library'] ?? '';
-                if( empty( $libraryName ))
+                /* Retrive library name */
+                $library = $aApp -> getPayloadFileAny( $libraryName );
+                /* Loading library */
+                if( empty( $library ))
                 {
                     $result -> setResult
                     (
-                        'payload-library-is-empty',
+                        'payload-library-not-found',
                         [
-                            'route'     => $aRoute
+                            'file'      => $library,
+                            'payload'   => $aRoute
                         ]
                     )
                     -> backtrace();
+                    /* Dump result in to log */
+                    $aApp -> resultWarning( $result );
                 }
                 else
                 {
-                    /* Retrive library name */
-                    $library = $aApp -> getPayloadFileAny( $libraryName );
-                    /* Loading library */
-                    if( empty( $library ))
-                    {
-                        $result -> setResult
-                        (
-                            'payload-library-not-found',
-                            [
-                                'file'      => $library,
-                                'payload'   => $aRoute
-                            ]
-                        )
-                        -> backtrace();
-                        /* Dump result in to log */
-                        $aApp -> resultWarning( $result );
-                    }
-                    else
-                    {
-                        $aApp -> loadLibrary( $library, $result );
-                    }
+                    $aApp -> loadLibrary( $library, $result );
                 }
             }
         }
@@ -729,44 +707,32 @@ class Payload extends Params
 
 
 
-//  Remove after 2025-07-01
-//    /*
-//        Override of the method for retrieving a parameter for the payload
-//        If the parameter is not present in the payload, it will be fetched
-//        from the application using the key payloads/payload/params
-//    */
-//    public function getParam
-//    (
-//        /* Array of the parameter path or the parameter name at the top level */
-//        $aPath,
-//        /* Default value if the parameter is missing. */
-//        $aDefault = null
-//    )
-//    {
-//        /* Retrieve the value from the payload parameters */
-//        $result = parent::getParam( $aPath, $aDefault );
-//        /* Check for success, and if it fails ... */
-//        if( $result === $aDefault )
-//        {
-//            /*
-//                ... retrieve the value from the payload configuration
-//                in the application, if it exists
-//            */
-//            $Result = $this -> getApp()
-//            -> getParam
-//            (
-//                array_merge
-//                (
-//                    [ Engine::ENGINE_CONFIG_KEY, 'payloads' ],
-//                    explode( '/', get_class( $this )),
-//                    (array) $aPath
-//                ),
-//                $aDefault
-//            );
-//        }
-//        return $result;
-//    }
-//
+    /*
+        Check caller for payload
+    */
+    public function checkCaller
+    (
+        string $aCaller
+    )
+    :self
+    {
+        if( $this -> getCaller() !== $aCaller )
+        {
+            $this -> setResult
+            (
+                'payload-caller-invalid',
+                [
+                    'payload-caller'  => $this -> caller,
+                    'requested-caller' => $aCaller
+                ]
+            )
+            -> backtrace();
+            /* Dump result in to log */
+            $this -> resultWarning( $this );
+        }
+        return $this;
+    }
+
 
 
     /*
@@ -805,5 +771,31 @@ class Payload extends Params
     )
     {
         return $this -> getApp() -> getProjectPath( $aLocal, $aProjectPath );
+    }
+
+
+
+    /*
+        Return caller
+    */
+    public function getCaller()
+    :string | null
+    {
+        return $this -> caller;
+    }
+
+
+
+    /*
+        Set caller
+    */
+    public function setCaller
+    (
+        string $a
+    )
+    :self
+    {
+        $this -> caller = $a;
+        return $this;
     }
 }

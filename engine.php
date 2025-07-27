@@ -115,6 +115,9 @@ class Engine extends App
                     'Payload module for running ' ,
                     '--{' . self::ID . '.method}=[METHOD]               | ' .
                     'Payload method in module for running ' ,
+                    '--{' . self::ID . '.caller}=[NAME]                 | ' .
+                    'Optional caller name, used for method call control. Defaults to null.' ,
+
                     '--' . self::ID . '.projects=path/project1;...      | ' .
                     'List of project paths for searching ' .
                     'components in the current project. Default value is ' .
@@ -152,6 +155,7 @@ class Engine extends App
         if( $this -> isOk() )
         {
             $method = $this -> getParam([ self::ID, 'method' ]);
+            $caller = $this -> getParam([ self::ID, 'caller' ], 'cli');
 
             $this -> validate
             (
@@ -164,7 +168,7 @@ class Engine extends App
 
             if( $this -> isOk() )
             {
-                Payload::create( $this, $payload )
+                Payload::create( $this, $payload, $caller )
                 -> call( $method )
                 -> resultTo( $this );
             }
@@ -768,13 +772,6 @@ class Engine extends App
             -> param( 'payload', $aPayloadName )
             -> lineEnd();
         }
-
-        /* Build route from sources */
-//        $result
-//        = $result
-//      + $this -> getParam( [ 'engine', 'default', 'route' ], [] )
-//        + self::ROUTE_DEFAULT
-//        ;
 
         return ( $result[ 'enabled' ] ?? true ) ? $result : [];
     }
