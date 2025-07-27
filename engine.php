@@ -775,5 +775,38 @@ class Engine extends App
 
         return ( $result[ 'enabled' ] ?? true ) ? $result : [];
     }
+
+
+
+    /*
+        Read the file
+    */
+    public function fileRead
+    (
+        string $aFileName,
+        Result& $aResult
+    )
+    :string | null
+    {
+        if( file_exists( $aFileName ))
+        {
+            $result = @file_get_contents( $aFileName );
+            if( $result === false )
+            {
+                $result = null;
+                $aResult -> setResult
+                (
+                    'file-read-error',
+                    [ 'file' => $aFileName ]
+                );
+            }
+        }
+        else
+        {
+            $aResult -> setResult( 'file-not-exists', [ 'file' => $aFileName ]);
+            $result = null;
+        }
+        return $result;
+    }
 }
 
