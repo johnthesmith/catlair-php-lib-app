@@ -168,9 +168,13 @@ class Engine extends App
 
             if( $this -> isOk() )
             {
-                Payload::create( $this, $payload, $caller )
-                -> call( $method )
-                -> resultTo( $this );
+                $payload = Payload::create( $this, $payload, $caller );
+                if( $payload -> isOk())
+                {
+                    $payload -> call( $method );
+                }
+
+                $this -> mergeResultFrom( $payload );
             }
         }
 

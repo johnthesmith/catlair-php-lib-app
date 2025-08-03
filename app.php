@@ -747,7 +747,7 @@ class App extends Params
         {
             $result -> setResult
             (
-                'payload-is-not-file',
+                'library-is-not-file',
                 [
                     'library'   => $aFilePath
                 ]
@@ -757,9 +757,7 @@ class App extends Params
         else
         {
             /* Get file name */
-            $file = pathinfo( $aFilePath, PATHINFO_FILENAME );
-
-            if( !empty( $file ))
+            if( file_exists( $aFilePath ))
             {
                 try
                 {
@@ -785,7 +783,7 @@ class App extends Params
             {
                 $result -> setResult
                 (
-                    'payload-library-not-found',
+                    'library-not-found',
                     [
                         'library'   => $file
                     ]

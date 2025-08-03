@@ -223,16 +223,30 @@ class Payload extends Params
         }
 
         /* Payload creation */
-        $payload
-        = $result -> isOk()
-        ? new $route[ 'class' ]( $aApp, $aCaller, $aParent )
-        : new Payload( $aApp, $aCaller, $aParent );
+        if( $result -> isOk() )
+        {
+            /* Create requested payload */
+            $payload = new $route[ 'class' ]( $aApp, $aCaller, $aParent );
+        }
+        else
+        {
+            /* Create default payload */
+            $payload = new Payload( $aApp, $aCaller, $aParent );
+        }
 
-        /* Add createion errors if exists */
-        $payload -> mergeResultFrom( $result );
 
-        /* Call event */
-        $payload -> call( 'onCreate', [], true );
+        if( $result -> isOk() )
+        {
+            /* Call event */
+            $payload -> call( 'onCreate', [], true );
+        }
+        else
+        {
+            /* Add createion errors if exists */
+            $payload -> mergeResultFrom( $result );
+            /* Result to log */
+            $payload -> resultWarning();
+        }
 
         return $payload;
     }
