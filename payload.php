@@ -254,6 +254,24 @@ class Payload extends Params
 
 
     /*
+       Создаёт новый объект на основе текущего Payload с полнaым
+       клонированием состояния и вызовом.
+    */
+    public function copy()
+    :self
+    {
+        $new = new static
+        (
+            $this->app,
+            $this->caller,
+            null
+        );
+        return clone $new;
+    }
+
+
+
+    /*
         Payload mutation
     */
     public function mutate
