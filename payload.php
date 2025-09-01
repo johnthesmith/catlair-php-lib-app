@@ -504,7 +504,7 @@ class Payload extends Params
             case 'string'   :return (string) $aValue; break;
             case 'bool'     :return (bool)   $aValue; break;
             case 'array'    :return (array)  $aValue; break;
-            default         :return null; break;
+            default         :return $aValue; break;
         }
     }
 
