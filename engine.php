@@ -736,7 +736,9 @@ class Engine extends App
     public function getRoute
     (
         /* Route name with delimiter `/` */
-        string $aPayloadName
+        string $aPayloadName,
+        /* Result object */
+        Result $aResult
     )
     /* Route array */
     :array
@@ -766,7 +768,7 @@ class Engine extends App
 
         if( $file !== false )
         {
-            $result = clParse( @file_get_contents( $file ), 'yaml', $this );
+            $result = clParse( @file_get_contents( $file ), 'yaml', $aResult );
         }
         else
         {

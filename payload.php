@@ -140,60 +140,63 @@ class Payload extends Params
         $result = new Result();
 
         /* Build route */
-        $route = $aApp -> getRoute( $aRoute );
+        $route = $aApp -> getRoute( $aRoute, $result );
 
-        if( empty( $route ))
+        if( $result -> isOk() )
         {
-            /* Route not found */
-            $result -> setResult
-            (
-                'route-not-found',
-                [
-                    'route' => $aRoute
-                ]
-            )
-            -> backtrace();
-            $aApp -> resultWarning( $result );
-        }
-        else
-        {
-            /* Route found */
-            $aApp -> getLog() -> dump( $route, 'Final route' ) -> lineEnd();
-
-            $libraryName = $route[ 'library'] ?? '';
-            if( empty( $libraryName ))
+            if( empty( $route ))
             {
+                /* Route not found */
                 $result -> setResult
                 (
-                    'payload-library-is-empty',
+                    'route-not-found',
                     [
-                        'route'     => $aRoute
+                        'route' => $aRoute
                     ]
                 )
                 -> backtrace();
+                $aApp -> resultWarning( $result );
             }
             else
             {
-                /* Retrive library name */
-                $library = $aApp -> getPayloadFileAny( $libraryName );
-                /* Loading library */
-                if( empty( $library ))
+                /* Route found */
+                $aApp -> getLog() -> dump( $route, 'Final route' ) -> lineEnd();
+
+                $libraryName = $route[ 'library'] ?? '';
+                if( empty( $libraryName ))
                 {
                     $result -> setResult
                     (
-                        'payload-library-not-found',
+                        'payload-library-is-empty',
                         [
-                            'file'      => $library,
-                            'payload'   => $aRoute
+                            'route'     => $aRoute
                         ]
                     )
                     -> backtrace();
-                    /* Dump result in to log */
-                    $aApp -> resultWarning( $result );
                 }
                 else
                 {
-                    $aApp -> loadLibrary( $library, $result );
+                    /* Retrive library name */
+                    $library = $aApp -> getPayloadFileAny( $libraryName );
+                    /* Loading library */
+                    if( empty( $library ))
+                    {
+                        $result -> setResult
+                        (
+                            'payload-library-not-found',
+                            [
+                                'file'      => $library,
+                                'payload'   => $aRoute
+                            ]
+                        )
+                        -> backtrace();
+                        /* Dump result in to log */
+                        $aApp -> resultWarning( $result );
+                    }
+                    else
+                    {
+                        $aApp -> loadLibrary( $library, $result );
+                    }
                 }
             }
         }
