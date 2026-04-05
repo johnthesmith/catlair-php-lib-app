@@ -38,10 +38,6 @@ namespace catlair;
 */
 
 
-
-/* Include core utils */
-require_once LIB . '/core/store_utils.php';
-
 /* Include payload class for extending */
 require_once 'payload.php';
 
@@ -336,7 +332,9 @@ class Hub extends Payload
         /* Key name or path as an array of strings */
         string | array $aPath,
         /* Value to set */
-        $aValue,
+        ?string $aValue,
+        /* Driver: 'file' or 'mem' */
+        string $aDriver = Engine::STATE_FILE,
         /* Encryption key */
         ?string $aSSLKey            = null,
         /* Encryption method from openssl_get_cipher_methods() */
@@ -352,6 +350,7 @@ class Hub extends Payload
                 $this,
                 $aPath,
                 $aValue,
+                $aDriver,
                 $aSSLKey,
                 $aSSLMethod,
                 $aSSLVectorLength
@@ -372,6 +371,8 @@ class Hub extends Payload
         string | array $aPath,
         /* Value to set */
         $aValue,
+        /* Driver: 'file' or 'mem' */
+        string $aDriver = Engine::STATE_FILE,
         /* Encryption key */
         ?string $aSSLKey            = null,
         /* Encryption method from openssl_get_cipher_methods() */
@@ -387,6 +388,7 @@ class Hub extends Payload
                 null,
                 $aPath,
                 $aValue,
+                $aDriver,
                 $aSSLKey,
                 $aSSLMethod,
                 $aSSLVectorLength
@@ -405,6 +407,8 @@ class Hub extends Payload
     (
         /* Key name or path as an array of strings */
         string | array $aPath,
+        /* Driver: 'file' or 'mem' */
+        string $aDriver = Engine::STATE_FILE,
         /* Default value if resul absent */
         $aDefault   = null,
         /* SSL encryption key */
@@ -415,6 +419,7 @@ class Hub extends Payload
         (
             $this,
             $aPath,
+            $aDriver,
             $aDefault,
             $aSSLKey
         );
@@ -430,6 +435,8 @@ class Hub extends Payload
     (
         /* Key name or path as an array of strings */
         string | array $aPath,
+        /* Driver: 'file' or 'mem' */
+        string $aDriver = Engine::STATE_FILE,
         /* Default value if resul absent */
         $aDefault   = null,
         /* SSL encryption key */
@@ -440,6 +447,7 @@ class Hub extends Payload
         (
             null,
             $aPath,
+            $aDriver,
             $aDefault,
             $aSSLKey
         );

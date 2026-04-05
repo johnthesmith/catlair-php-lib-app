@@ -123,7 +123,7 @@ class App extends Params
     public function __construct()
     {
         /* Creating the logging object */
-        $this -> log = Log::create() -> trapBegin();
+        $this -> log = Log::create();
 
         /* Creating the monitoring object */
         $this -> mon = Mon::create( $this -> log );
@@ -224,6 +224,8 @@ class App extends Params
         return $this;
     }
 
+
+
     /*
         Main application logic event
     */
@@ -279,41 +281,35 @@ class App extends Params
             -> setLogFile( basename( $logFile ));
         }
 
-        if( $this -> isOk() )
-        {
-            $this
-            -> getLog()
-            -> trace( 'Config file' )
-            -> param( 'file', $this -> getConfigFile() );
-        }
+        $cfg = $this -> getParams()[ 'app' ] ?? [];
 
         /* Устанавливаем режим вывода журнала */
         $this -> getLog()
-        -> setEnabled(      $this -> getParam([ 'app', 'log', 'enabled' ], true ))
-        -> setTrapEnabled(  $this -> getParam([ 'app', 'log', 'trap' ], false ))
-        -> setDebug(        $this -> getParam([ 'app', 'log', 'debug' ], true ))
-        -> setTrace(        $this -> getParam([ 'app', 'log', 'trace' ], true ))
-        -> setInfo(         $this -> getParam([ 'app', 'log', 'info' ], true ))
-        -> setWarning(      $this -> getParam([ 'app', 'log', 'warning' ], true ))
-        -> setError(        $this -> getParam([ 'app', 'log', 'error' ], true ))
-        -> setJob(          $this -> getParam([ 'app', 'log', 'job' ], true ))
-        -> setColored(      $this -> getParam([ 'app', 'log', 'colored' ], true ))
-        -> setHeader(       $this -> getParam([ 'app', 'log', 'header' ], true ))
-        -> setTree(         $this -> getParam([ 'app', 'log', 'tree' ], true ))
-        -> setDumpExclude(  $this -> getParam([ 'app', 'log', 'dump-exclude' ], [] ))
-        -> setTimeWarning(  $this -> getParam([ 'app', 'log', 'time-warning-mls' ], 500 ))
+        -> setEnabled       ( $cfg[ 'log' ][ 'enabled' ] ?? true )
+        -> setTrapEnabled   ( $cfg[ 'log' ][ 'trap' ] ?? false )
+        -> setDebug         ( $cfg[ 'log' ][ 'debug' ] ?? true )
+        -> setTrace         ( $cfg[ 'log' ][ 'trace' ] ?? true )
+        -> setInfo          ( $cfg[ 'log' ][ 'info' ] ?? true )
+        -> setWarning       ( $cfg[ 'log' ][ 'warning' ] ?? true )
+        -> setError         ( $cfg[ 'log' ][ 'error' ] ?? true )
+        -> setJob           ( $cfg[ 'log' ][ 'job' ] ?? true )
+        -> setColored       ( $cfg[ 'log' ][ 'colored' ] ?? true )
+        -> setHeader        ( $cfg[ 'log' ][ 'header' ] ?? true )
+        -> setTree          ( $cfg[ 'log' ][ 'tree' ] ?? true )
+        -> setDumpExclude   ( $cfg[ 'log' ][ 'dump-exclude' ] ?? [] )
+        -> setTimeWarning   ( $cfg[ 'log' ][ 'time-warning-mls' ] ?? 500 )
         ;
 
         /* Установка ключа мониторинга */
-        $monitorFilePathName =  $this -> getParam([ 'app', 'monitor' ]);
+        $monitorFilePathName =  $cfg[ 'monitor' ] ?? null;
         if( is_array( $monitorFilePathName ))
         {
-            $MonitorFilePath = $this -> getParam([ 'app', 'monitor', 'path' ]);
+            $MonitorFilePath = $cfg[ 'monitor' ][ 'path' ] ?? null;
             if( !empty( $monitorFilePath ))
             {
                 $this -> getMon() -> setFilePath( $monitorFilePath );
             }
-            $monitorFileName = $this -> getParam([ 'app', 'monitor', 'path' ]);
+            $monitorFileName = $cfg[ 'monitor' ][ 'path' ] ?? null;
             if( !empty( $monitorFileName ))
             {
                 $this -> getMon() -> setFileName( $monitorFilePath );
@@ -368,7 +364,7 @@ class App extends Params
                     Split the key by dot to obtain the hierarchy
                     and assign it to the result.
                 */
-                clValueToObject( $result, explode( '.', $key ), $value );
+                clValueToObject( $result, explode( '-' , $key ), $value );
             }
         }
         return $result;
@@ -409,7 +405,7 @@ class App extends Params
                     'app-config-file-not-found',
                     [
                         'file' => $configFile,
-                        'message' => 'Config file not found. Check the key --config'
+                        'message' => 'Config file not found. Check the key --app-config'
                     ]
                 );
             }
@@ -451,7 +447,11 @@ class App extends Params
     {
         $this
         -> getLog()
-        -> begin( $this -> getName() );
+        -> trapBegin()
+        -> begin( $this -> getName() )
+        -> info( 'Config file' )
+        -> param( 'file', $this -> getConfigFile() )
+        ;
 
         /* Запуск системы помощи */
         if( $this -> paramExists( 'help' ))
@@ -504,7 +504,7 @@ class App extends Params
             -> statisticOut();
         }
 
-        $this -> getLog() -> stop();
+        $this -> getLog() -> trapEnd() -> lineEnd() -> stop();
 
         if( $this -> getParam([ 'app', 'final-state' ], false ))
         {
@@ -550,48 +550,48 @@ class App extends Params
                 PHP_EOL,
                 [
                     '--help                         | Help information',
-                    '--app.final-state=[true;false] | ' .
+                    '--app-final-state=[true;false] | ' .
                     'Appliation returns the final state to STDOUT, default false',
-                    '--app.name=[NAME]              | ' .
+                    '--app-name=[NAME]              | ' .
                     'Application name. This name must be unique for host or empty',
-                    '--app.config=[FILE_PATH]       | ' .
+                    '--app-config=[FILE_PATH]       | ' .
                     'Config file name in JSON format. config.json is default config '.
                     'file will be read if exists',
-                    '--app.log.file=[DESTINATION]   | '.
+                    '--app-log.file=[DESTINATION]   | '.
                     'Log destination. Empty value for console log or file name.',
-                    '--app.log.enabled=[true;false] | '.
+                    '--app-log.enabled=[true;false] | '.
                     'true - the log is enabled, otherwise the log is disabled.',
-                    '--app.log.trap=[true;false]    | '.
+                    '--app-log.trap=[true;false]    | '.
                     'true - the log trap is enabled, otherwise the log trap is ' .
                     'disabled, and all events will write to the log.',
-                    '--app.log.debug=[true;false]   | ' .
+                    '--app-log.debug=[true;false]   | ' .
                     'true - the log DEBUG messages are enabled, otherwise messages ' .
                     'are disabled',
-                    '--app.log.trace=[true;false]   | '.
+                    '--app-log-trace=[true;false]   | '.
                     'true - the log TRACE messages are enabled, otherwise messages ' .
                     'are disabled',
-                    '--app.log.info=[true;false]    | ' .
+                    '--app-log.info=[true;false]    | ' .
                     'true - the log INFO messages are enabled, otherwise messages ' .
                     'are disabled',
-                    '--app.log.warning=[true;false] | ' .
+                    '--app-log-warning=[true;false] | ' .
                     'true - the log WARNING messages are enabled, otherwise ' .
                     'messages are disabled',
-                    '--app.log.error=[true;false]   | ' .
+                    '--app-log-error=[true;false]   | ' .
                     'true - the log ERROR messages are enabled, otherwise messages ' .
                     'are disabled',
-                    '--app.log.job=[true;false]     | '.
+                    '--app-log-job=[true;false]     | '.
                     'true - the log hierarchy is enabled, otherwise it is disabled' ,
-                    '--app.log.colored=[true;false] | '.
+                    '--app-log-colored=[true;false] | '.
                     'true - the log colors are enabled, otherwise it is disabled',
-                    '--app.log.tree=[true;false]    | ' .
+                    '--app-log-tree=[true;false]    | ' .
                     'true - the log tree is enabled, otherwise it is disabled',
-                    '--app.log.header=[true;false]  | ' .
+                    '--app-log-header=[true;false]  | ' .
                     'true - the log header for messages is enabled (time, lag etc), ' .
                     'otherwise it is disabled',
-                    '--app.log.dump-exclude=[]      | ' .
+                    '--app-log-dump-exclude=[]      | ' .
                     'Array of strings with keys, from dump will be excluded from ' .
                     'the log, e.g. password' ,
-                    '--app.log.time-warning-mls=[]  | ' .
+                    '--app-log-time-warning-mls=[]  | ' .
                     'Warning time between two calls will be colored'
                 ]
             ),
@@ -806,7 +806,11 @@ class App extends Params
     public function getConfigFile()
     :string
     {
-        $file = $this -> getParam([ 'app', 'config' ], '' );
+        $file = $this -> getParam([ 'app', 'config' ], null );
+        if( empty( $file ))
+        {
+            $file = $this -> getParam([ 'app-config' ], null );
+        }
 
         /* Check for the presence of the default file */
         if( empty( $file ) && file_exists( 'config.yaml' ) )

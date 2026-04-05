@@ -54,6 +54,8 @@ require_once 'engine.php';
 */
 class Payload extends Params
 {
+    public const CONFIG = 'default.yaml';
+
     /* Application object */
     private Engine | null $app      = null;
 
@@ -140,63 +142,62 @@ class Payload extends Params
         $result = new Result();
 
         /* Build route */
-        $route = $aApp -> getRoute( $aRoute, $result );
+        $route = $aApp -> getRoute( $aRoute );
 
-        if( $result -> isOk() )
+        if( empty( $route ))
         {
-            if( empty( $route ))
+            /* Route not found */
+            $result -> setResult
+            (
+                'route-not-found',
+                [
+                    'route' => $aRoute,
+                    'current-path' => getcwd()
+                ]
+            )
+            -> backtrace();
+            $aApp -> resultWarning( $result );
+        }
+        else
+        {
+            /* Route found */
+            $aApp -> getLog() -> dump( $route, 'Final route' ) -> lineEnd();
+
+            $libraryName = $route[ 'library'] ?? '';
+            if( empty( $libraryName ))
             {
-                /* Route not found */
                 $result -> setResult
                 (
-                    'route-not-found',
+                    'payload-library-is-empty',
                     [
-                        'route' => $aRoute
+                        'route'     => $aRoute,
+                        'current-path' => getcwd()
                     ]
                 )
                 -> backtrace();
-                $aApp -> resultWarning( $result );
             }
             else
             {
-                /* Route found */
-                $aApp -> getLog() -> dump( $route, 'Final route' ) -> lineEnd();
-
-                $libraryName = $route[ 'library'] ?? '';
-                if( empty( $libraryName ))
+                /* Retrive library name */
+                $library = $aApp -> getPayloadFileAny( $libraryName );
+                /* Loading library */
+                if( empty( $library ))
                 {
                     $result -> setResult
                     (
-                        'payload-library-is-empty',
+                        'payload-library-not-found',
                         [
-                            'route'     => $aRoute
+                            'file'      => $library,
+                            'payload'   => $aRoute
                         ]
                     )
                     -> backtrace();
+                    /* Dump result in to log */
+                    $aApp -> resultWarning( $result );
                 }
                 else
                 {
-                    /* Retrive library name */
-                    $library = $aApp -> getPayloadFileAny( $libraryName );
-                    /* Loading library */
-                    if( empty( $library ))
-                    {
-                        $result -> setResult
-                        (
-                            'payload-library-not-found',
-                            [
-                                'file'      => $library,
-                                'payload'   => $aRoute
-                            ]
-                        )
-                        -> backtrace();
-                        /* Dump result in to log */
-                        $aApp -> resultWarning( $result );
-                    }
-                    else
-                    {
-                        $aApp -> loadLibrary( $library, $result );
-                    }
+                    $aApp -> loadLibrary( $library, $result );
                 }
             }
         }
@@ -381,7 +382,7 @@ class Payload extends Params
     public function run
     (
         /* Method name */
-        string  $aMethod    = null,
+        string | null $aMethod = null,
         /* Additional arguments */
         array   $aArguments = []
     )
@@ -811,6 +812,42 @@ class Payload extends Params
 
 
     /*
+        Return payload config path
+    */
+    public function getConfigPath
+    (
+        /* Oribinalв  product path */
+        string $aProjectPath = null
+    )
+    {
+        return $this -> getApp() -> getPayloadsConfigPath
+        (
+            $this::CONFIG,
+            $aProjectPath
+        );
+    }
+
+
+
+    /*
+        Return payload monitoring path
+    */
+    public function getMonPath
+    (
+        /* Oribinalв  product path */
+        string $aProjectPath = null
+    )
+    {
+        return $this -> getApp() -> getPayloadsMonPath
+        (
+            $this::CONFIG,
+            $aProjectPath
+        );
+    }
+
+
+
+    /*
         Return caller
     */
     public function getCaller()
@@ -832,5 +869,37 @@ class Payload extends Params
     {
         $this -> caller = $a;
         return $this;
+    }
+
+
+
+    /*
+        Return payload confug array
+    */
+    public function getConfig()
+    :array
+    {
+        $result = [];
+        $file = $this -> getConfigPath();
+        if( file_exists( $file ))
+        {
+            $result = clParse
+            (
+                file_get_contents( $file ),
+                pathinfo( $file, PATHINFO_EXTENSION ),
+                $this
+            );
+        }
+        else
+        {
+            $this -> setResult
+            (
+                'config-not-found',
+                [
+                    'file' => $file
+                ]
+            );
+        }
+        return $result;
     }
 }

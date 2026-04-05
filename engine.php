@@ -60,6 +60,11 @@ require_once 'payload.php';
 */
 class Engine extends App
 {
+    /* Memory state */
+    const STATE_MEM = 'mem';
+    /* Memory state */
+    const STATE_FILE = 'file';
+
     /* Folder name for private and public files */
     const PRIVATE_FOLDER = 'private';
     const PUBLIC_FOLDER = 'public';
@@ -78,6 +83,8 @@ class Engine extends App
         'method' => '',
         'query' => []
     ];
+
+
 
     /*
         Create Engine Appllication object
@@ -111,14 +118,14 @@ class Engine extends App
             (
                 PHP_EOL,
                 [
-                    '--{' . self::ID . '.payload}=[PAYLOAD]             | ' .
+                    '--' . self::ID . '-payload=[PAYLOAD]             | ' .
                     'Payload module for running ' ,
-                    '--{' . self::ID . '.method}=[METHOD]               | ' .
+                    '--' . self::ID . '-method=[METHOD]               | ' .
                     'Payload method in module for running ' ,
-                    '--{' . self::ID . '.caller}=[NAME]                 | ' .
+                    '--' . self::ID . '-caller=[NAME]                 | ' .
                     'Optional caller name, used for method call control. Defaults to null.' ,
 
-                    '--' . self::ID . '.projects=path/project1;...      | ' .
+                    '--' . self::ID . '-projects=path/project1;...      | ' .
                     'List of project paths for searching ' .
                     'components in the current project. Default value is ' .
                     implode( ';', self::PROJECTS )
@@ -198,7 +205,10 @@ class Engine extends App
                         user-data
                 ro/
                     private/
-                        scripts
+                        config/
+                            <payload>
+                        payload/
+                        router/
                     public/
                         content
                         file
@@ -211,6 +221,8 @@ class Engine extends App
         This directory may be used to store files written by the project.
         The application must have read and write permissions for this directory.
         It is recommended to add this directory to .gitignore.
+
+        ./rw
     */
     public function getRwPath
     (
@@ -238,6 +250,8 @@ class Engine extends App
         This directory contains files that are guaranteed to be preserved
         throughout the project's lifecycle. The application is expected to
         have read-only access to this directory.
+
+        ./ro
     */
     public function getRoPath
     (
@@ -261,6 +275,8 @@ class Engine extends App
     /*
     	Returns the path to the project's rw/public directory.
     	This directory is used for public files with read-write access.
+
+    	./rw/public
     */
     public function getRwPublicPath
     (
@@ -282,6 +298,8 @@ class Engine extends App
     /*
     	Returns the path to the project's rw/private directory.
     	This directory is used for private files with read-write access.
+
+    	./rw/private
     */
     public function getRwPrivatePath
     (
@@ -303,6 +321,8 @@ class Engine extends App
     /*
     	Returns the path to the project's rw/public directory.
        	This directory is used for public files with read-write access.
+
+       	./ro/private
     */
     public function getRoPrivatePath
     (
@@ -324,6 +344,8 @@ class Engine extends App
     /*
     	Returns the path to the project's ro/public directory.
     	This directory is used for read only public files.
+
+    	./ro/public
     */
     public function getRoPublicPath
     (
@@ -345,8 +367,9 @@ class Engine extends App
 
     /*
         Returns the path for storing payload states
-        ./rw/private/store/a/b/c/abc....bin.
         The file name is formed using the scatter name.
+
+        ./rw/private/store/a/b/c/abc....bin.
     */
     public function getStatePath
     (
@@ -385,7 +408,7 @@ class Engine extends App
 
     /*
         Return logs path
-        PROJECT/rw/private/logs/local...
+        ./rw/private/logs/
     */
     public function getLogsPath
     (
@@ -407,7 +430,7 @@ class Engine extends App
 
     /*
         Return path to payloads libraries
-        PROJECT/payload/local...
+        ./ro/private/payload/
     */
     public function getPayloadPath
     (
@@ -424,6 +447,7 @@ class Engine extends App
             $aProject
         );
     }
+
 
 
     /*
@@ -459,7 +483,7 @@ class Engine extends App
     public function getPayloadFileAny
     (
         /* The name of the payload file */
-        ? string $aPayloadFile = '',
+        ? string $aPayloadFile = ''
     )
     {
         /* Запрос перечня проектов */
@@ -507,7 +531,7 @@ class Engine extends App
         /* Local path from router directory */
         string $aLocal      = null,
         /* Optional specific project */
-        string $aProject    = null,
+        string $aProject    = null
     )
     :string
     {
@@ -528,7 +552,7 @@ class Engine extends App
     public function getRouteFileAny
     (
         /* The name of the payload in the format any/path/payload */
-        ? string $aPath = '',
+        ? string $aPath = ''
     )
     {
         /* Запрос перечня проектов */
@@ -537,7 +561,7 @@ class Engine extends App
         {
             if( !empty( $projectPath ))
             {
-                /* Return default ptoject path */
+                /* Return default project path */
                 $file = self::getRouterPath( $aPath, $projectPath );
                 $this -> getLog()
                 -> trace( 'Looking for route' )
@@ -560,6 +584,93 @@ class Engine extends App
 
         return $result;
     }
+
+
+
+    /*
+        Return config path
+        ./ro/private/config/
+    */
+    public function getConfigPath
+    (
+        /* Local path from payload directory */
+        string $aLocal      = null,
+        /* Optional specific project */
+        string $aProject    = null
+    )
+    :string
+    {
+        return $this -> getRoPrivatePath
+        (
+            'config' . clLocalPath( $aLocal ),
+            $aProject
+        );
+    }
+
+
+
+    /*
+        Return path to payloads config
+        ./ro/private/payload/
+    */
+    public function getPayloadsConfigPath
+    (
+        string $aLocal      = null,
+        /* Optional specific project */
+        string $aProject    = null
+    )
+    :string
+    {
+        return $this -> getConfigPath
+        (
+            'payloads' . clLocalPath( $aLocal ),
+            $aProject
+        );
+    }
+
+
+
+    /*
+        Return monitoring path
+        ./rw/private/mon/
+    */
+    public function getMonPath
+    (
+        /* Local path from payload directory */
+        string $aLocal      = null,
+        /* Optional specific project */
+        string $aProject    = null
+    )
+    :string
+    {
+        return $this -> getRwPrivatePath
+        (
+            'mon' . clLocalPath( $aLocal ),
+            $aProject
+        );
+    }
+
+
+
+    /*
+        Return monitoring payloads
+        ./ro/private/payload/
+    */
+    public function getPayloadsMonPath
+    (
+        string $aLocal      = null,
+        /* Optional specific project */
+        string $aProject    = null
+    )
+    :string
+    {
+        return $this -> getMonPath
+        (
+            'payloads' . clLocalPath( $aLocal ),
+            $aProject
+        );
+    }
+
 
 
     /**************************************************************************
@@ -611,46 +722,45 @@ class Engine extends App
 
 
     /*
-        Returns the list of payloads
+        Return plant list of routes
     */
-    public function getPayloads()
+    public function buildRouteList()
+    :array
     {
-        $payloads = [];
-
+        $result = [];
         foreach( $this -> getProjects() as $projectPath )
         {
-            $path = Payload::getPayloadPath( $this, '', $projectPath );
+            $routerPath = clNormalizePath( $this -> getRouterPath( '', $projectPath ));
             /* Started scanning files */
             clFileScan
             (
-                $path,
+                $routerPath,
                 null,
-                function( $aFile ) use ( &$payloads, $path )
+                function( $aFile ) use ( &$result, $routerPath )
                 {
-                    /* If the file is PHP... */
+                    /* If the file is yaml... */
                     if
                     (
-                        strtolower( pathinfo( $aFile, PATHINFO_EXTENSION)) == 'php'
+                        strtolower( pathinfo( $aFile, PATHINFO_EXTENSION)) == 'yaml'
                     )
                     {
                         $value = explode
                         (
                             '.',
-                            str_replace( $path . '/', '', $aFile ),
+                            str_replace( $routerPath . '/', '', $aFile ),
                             2
                         )[ 0 ];
-                        if( !in_array( $value, $payloads ))
+
+                        if( !in_array( $value, $result ))
                         {
                             /* Add to the list of payloads */
-                            $payloads[] = $value;
+                            $result[] = $value;
                         }
                     }
                 }
             );
         }
-
-        /* Returned the list of payloads */
-        return $payloads;
+        return $result;
     }
 
 
@@ -671,6 +781,8 @@ class Engine extends App
         string | array $aPath,
         /* Value to set */
         $aValue,
+        /* Driver: 'file' or 'mem' */
+        string $aDriver = self::STATE_FILE,
         /* Encryption key */
         string | null $aSSLKey  = null,
         /* Encryption method from openssl_get_cipher_methods() */
@@ -678,15 +790,34 @@ class Engine extends App
         /* Initialization vector length */
         int $aSSLVectorLength   = 16
     )
+    :Result
     {
-        return clWriteStore
-        (
-            $this -> getStatePath( $aPayload, $aPath ),
-            $aValue,
-            $aSSLKey,
-            $aSSLMethod,
-            $aSSLVectorLength
-        );
+        switch( $aDriver )
+        {
+            case self::STATE_FILE:
+                /* Include core utils */
+                require_once LIB . '/core/store_utils.php';
+                return clWriteStore
+                (
+                    $this -> getStatePath($aPayload, $aPath),
+                    $aValue,
+                    $aSSLKey,
+                    $aSSLMethod,
+                    $aSSLVectorLength
+                );
+            case self::STATE_MEM:
+            default:
+                $result = new Result();
+                $result -> setResult
+                (
+                    'unknown-state-driver',
+                    [
+                        'driver' => $aDriver,
+                        'available' => [ 'file' ]
+                    ]
+                );
+            return $result;
+        }
     }
 
 
@@ -701,22 +832,31 @@ class Engine extends App
         Payload|null $aPayload,
         /* Key name or path as an array of strings */
         string | array $aPath,
+        /* Driver: 'file' or 'mem' */
+        string $aDriver = self::STATE_FILE,
         /* Default value if resul absent */
         $aDefault   = null,
         /* SSL encryption key */
         $aSSLKey    = null
     )
     {
-        $value = null;
-
-        clReadStore
-        (
-            $value,
-            $this -> getStatePath( $aPayload, $aPath ),
-            $aDefault,
-            $aSSLKey
-        );
-        return $value;
+        switch ($aDriver)
+        {
+            case self::STATE_FILE:
+                require_once LIB . '/core/store_utils.php';
+                $value = null;
+                clReadStore
+                (
+                    $value,
+                    $this -> getStatePath( $aPayload, $aPath ),
+                    $aDefault,
+                    $aSSLKey
+                );
+                return $value;
+            case self::STATE_MEM:
+            default:
+                return $aDefault;
+        }
     }
 
 
@@ -736,9 +876,7 @@ class Engine extends App
     public function getRoute
     (
         /* Route name with delimiter `/` */
-        string $aPayloadName,
-        /* Result object */
-        Result $aResult
+        string $aPayloadName
     )
     /* Route array */
     :array
@@ -768,7 +906,7 @@ class Engine extends App
 
         if( $file !== false )
         {
-            $result = clParse( @file_get_contents( $file ), 'yaml', $aResult );
+            $result = clParse( @file_get_contents( $file ), 'yaml', $this );
         }
         else
         {
@@ -814,5 +952,6 @@ class Engine extends App
         }
         return $result;
     }
+
 }
 
