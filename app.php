@@ -804,7 +804,7 @@ class App extends Params
         Return the config file name for application
     */
     public function getConfigFile()
-    :string
+    :string | null
     {
         $file = $this -> getParam([ 'app', 'config' ], null );
         if( empty( $file ))
