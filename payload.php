@@ -69,7 +69,7 @@ class Payload extends Params
         Payload module constructor
         Do not call this directly. Use the create method instead.
     */
-    private function __construct
+    public function __construct
     (
         /* Application object */
         $aApp,
@@ -258,19 +258,23 @@ class Payload extends Params
 
 
     /*
-       Создаёт новый объект на основе текущего Payload с полнaым
-       клонированием состояния и вызовом.
+       Создаёт новый объект на основе текущего Payload
     */
-    public function copy()
+    public function clone()
     :self
     {
-        $new = new static
-        (
-            $this->app,
-            $this->caller,
-            null
-        );
-        return clone $new;
+        return clone $this;
+    }
+
+
+
+    /*
+        Возвращает новый экземпляр того же класса
+        с чистыми состояниями
+    */
+    public function spawn(): self
+    {
+        return new static( $this -> app, $this -> caller );
     }
 
 
